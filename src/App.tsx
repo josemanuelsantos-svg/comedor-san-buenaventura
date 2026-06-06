@@ -6,7 +6,8 @@ import {
   RefreshCw, WifiOff, ShieldCheck, Link2, HelpCircle, X,
   Shapes, Backpack, Info, Edit3, UserX, AlertTriangle, UserCheck, Printer,
   Settings, Download, Moon, Sun, FileSpreadsheet, Eye, ClipboardCheck, ChevronRight,
-  Bookmark, ChevronDown, ChevronUp, RotateCcw, Award, Activity, Music, Smile
+  Bookmark, ChevronDown, ChevronUp, RotateCcw, Award, Activity, Music, Smile,
+  Baby, GraduationCap
 } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
@@ -341,10 +342,10 @@ export default function App() {
   );
   
   if (!user) return (
-    <div className="p-10 text-center text-slate-500 h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-slate-900">
-      <div className="relative flex items-center justify-center">
-        <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-12 h-12 animate-bounce" />
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
+    <div className="p-10 text-center text-slate-500 h-screen flex flex-col items-center justify-center gap-6 bg-slate-50 dark:bg-slate-900">
+      <div className="relative flex items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-950 shadow-lg border border-slate-100 dark:border-slate-800 transition-all hover:scale-105">
+        <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-20 h-20 animate-bounce" />
+        <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-green-500 rounded-full animate-ping"></div>
       </div>
       <p className="font-semibold text-lg text-slate-700 dark:text-slate-300 animate-pulse">Iniciando Comedor SB...</p>
     </div>
@@ -378,11 +379,11 @@ export default function App() {
           </div>
         </div>
         
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
             {/* Logotipo Oficial */}
-            <div className="p-1 rounded-xl bg-slate-50 dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-850">
-              <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-12 h-12 md:w-10 md:h-10 object-contain" />
+            <div className="p-1.5 rounded-2xl bg-white dark:bg-slate-950 shadow-md border border-slate-200 dark:border-slate-800 transition-all hover:rotate-3">
+              <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-14 h-14 md:w-16 md:h-16 object-contain" />
             </div>
             <div>
               <h1 className="font-black text-base leading-none text-slate-800 dark:text-slate-100">Comedor SB</h1>
@@ -1211,7 +1212,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
                 className="interactive-card flex items-center gap-4 p-6 bg-slate-50/40 dark:bg-slate-800/10 border border-slate-200 dark:border-slate-800 rounded-2xl hover:border-pink-500 dark:hover:border-pink-500 hover:bg-pink-50/20 dark:hover:bg-pink-955/10 transition-all group text-left"
               >
                 <div className="p-4 rounded-2xl bg-pink-100/60 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform shadow-inner">
-                  <Smile className="w-8 h-8" />
+                  <Baby className="w-8 h-8" />
                 </div>
                 <div>
                   <span className="block text-lg font-black text-slate-800 dark:text-slate-100 group-hover:text-pink-650 dark:group-hover:text-pink-400 transition-colors">Infantil</span>
@@ -1223,8 +1224,8 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
                 onClick={() => { setFormData(prev => ({ ...prev, etapa: "Primaria" })); setStep(2); }} 
                 className="interactive-card flex items-center gap-4 p-6 bg-slate-50/40 dark:bg-slate-800/10 border border-slate-200 dark:border-slate-800 rounded-2xl hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50/20 dark:hover:bg-blue-950/10 transition-all group text-left"
               >
-                <div className="p-4 rounded-2xl bg-blue-100/60 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform shadow-inner">
-                  <School className="w-8 h-8" />
+                <div className="p-4 rounded-2xl bg-blue-100/60 dark:bg-blue-955/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform shadow-inner">
+                  <GraduationCap className="w-8 h-8" />
                 </div>
                 <div>
                   <span className="block text-lg font-black text-slate-800 dark:text-slate-100 group-hover:text-blue-650 dark:group-hover:text-blue-400 transition-colors">Primaria</span>
@@ -1270,7 +1271,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
                         setFormData(prev => ({ ...prev, letra: l })); 
                         setTimeout(() => setStep(3), 150); 
                       }} 
-                      className="py-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl font-black text-2xl hover:bg-blue-50/50 dark:hover:bg-blue-950/20 hover:border-blue-500 dark:hover:border-blue-400 text-slate-750 dark:text-slate-250 transition-all hover:scale-105 hover:shadow-md"
+                      className="btn-hover-effect py-4 bg-slate-50/60 dark:bg-slate-855/40 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-2xl text-slate-750 dark:text-slate-250 hover:bg-blue-50 hover:border-blue-500 dark:hover:bg-blue-955/20 dark:hover:border-blue-450 transition-all hover:scale-105 hover:shadow-md shadow-sm"
                     >
                       {l}
                     </button>
