@@ -382,7 +382,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             {/* Logotipo Oficial */}
             <div className="p-1 rounded-xl bg-slate-50 dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-850">
-              <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-9 h-9 object-contain" />
+              <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-12 h-12 md:w-10 md:h-10 object-contain" />
             </div>
             <div>
               <h1 className="font-black text-base leading-none text-slate-800 dark:text-slate-100">Comedor SB</h1>
@@ -911,11 +911,9 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
     setManualAusencias(manualObs);
   };
 
-  // Solicitar clave para habilitar la edición de registros (Seguridad por Clave)
+  // Habilitar la edición de registros (sin contraseña para el profesor)
   const handleEditClickProtected = () => {
-    promptAdminAuth(() => {
-      enableEditMode();
-    });
+    enableEditMode();
   };
 
   const currentTotal = (Number(formData.fijos) || 0) + (Number(formData.tickets) || 0);
@@ -3274,7 +3272,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
               className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-205 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-150 dark:focus:ring-blue-950 font-bold text-slate-800 dark:text-slate-200"
               placeholder="comedorcsb"
             />
-            <p className="text-[10px] text-slate-400">Clave requerida para entrar a las vistas de Cocina, Ajustes o editar asistencias enviadas (Por defecto: comedorcsb).</p>
+            <p className="text-[10px] text-slate-400">Clave requerida para entrar a las vistas de Cocina y Ajustes (Por defecto: comedorcsb).</p>
           </div>
 
           <button 
