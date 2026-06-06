@@ -622,11 +622,15 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
         const newAttendance = { ...prev };
         students.forEach(s => {
           if (newAttendance[s.id] === undefined) {
+            let defaultOption = "falta";
+            if (s.tipoHabitual !== "no_comedor") {
+              defaultOption = esExcursion ? "picnic" : "comedor";
+            }
             newAttendance[s.id] = {
               nombre: s.nombre,
               nota: s.nota,
               dietaBlanda: s.dietaBlanda,
-              asiste: true // Asiste por defecto
+              option: defaultOption
             };
           }
         });
@@ -813,15 +817,33 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
     });
   };
 
-  const toggleStudentAttendance = (studentId) => {
+  const updateStudentAttendanceOption = (studentId, option) => {
     setAttendance(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        asiste: !prev[studentId].asiste
+        option: option
       }
     }));
   };
+
+  // Alternar opciones de picnics/comedor de forma automática al cambiar esExcursion
+  useEffect(() => {
+    setAttendance(prev => {
+      const syncAtt = { ...prev };
+      Object.keys(syncAtt).forEach(id => {
+        const s = rosterAlumnos.find(x => x.id === id);
+        if (s && s.tipoHabitual !== "no_comedor") {
+          if (esExcursion && syncAtt[id].option === "comedor") {
+            syncAtt[id].option = "picnic";
+          } else if (!esExcursion && syncAtt[id].option === "picnic") {
+            syncAtt[id].option = "comedor";
+          }
+        }
+      });
+      return syncAtt;
+    });
+  }, [esExcursion, rosterAlumnos]);
 
   // Cargar datos del día anterior desde el almacenamiento local (Productividad Profesor 2)
   const handleLoadLastSubmission = () => {
@@ -843,11 +865,18 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
       setManualEspeciales(data.manualEspeciales || []);
       setManualAusencias(data.manualAusencias || "");
       
+      const savedOptions = data.especialesOptions || {};
       const savedIds = data.especialesRosterIds || [];
       setAttendance(prev => {
         const syncAtt = { ...prev };
         Object.keys(syncAtt).forEach(id => {
-          syncAtt[id].asiste = savedIds.includes(id);
+          if (savedOptions[id]) {
+            syncAtt[id].option = savedOptions[id];
+          } else if (savedIds.includes(id)) {
+            syncAtt[id].option = esExcursion ? "picnic" : "comedor";
+          } else {
+            syncAtt[id].option = "falta";
+          }
         });
         return syncAtt;
       });
@@ -878,17 +907,15 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
       return data;
     });
 
-    const rosterIds = [];
     const manualEsps = [];
     (yaRegistrado.especiales || []).forEach(e => {
-      if (e.rosterId) {
-        rosterIds.push(e.rosterId);
-      } else {
+      if (!e.rosterId) {
         manualEsps.push({
           id: Date.now() + Math.random(),
           nombre: e.nombre,
           dietaBlanda: e.dietaBlanda,
           nota: e.nota,
+          option: e.option || (yaRegistrado.esExcursion ? "picnic" : "comedor"),
           esTemporal: true
         });
       }
@@ -898,7 +925,12 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
     setAttendance(prev => {
       const syncAtt = { ...prev };
       Object.keys(syncAtt).forEach(id => {
-        syncAtt[id].asiste = rosterIds.includes(id);
+        const found = (yaRegistrado.especiales || []).find(e => e.rosterId === id);
+        if (found) {
+          syncAtt[id].option = found.option || (yaRegistrado.esExcursion ? "picnic" : "comedor");
+        } else {
+          syncAtt[id].option = "falta";
+        }
       });
       return syncAtt;
     });
@@ -949,15 +981,21 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
 
     // 1. Compilar listado final de alumnos especiales que COMERÁN HOY (Mejora 1)
     const rosterPresentes = rosterAlumnos
-      .filter(s => attendance[s.id] && attendance[s.id].asiste)
+      .filter(s => attendance[s.id] && attendance[s.id].option !== "falta")
       .map(s => ({
         nombre: s.nombre,
         dietaBlanda: s.dietaBlanda,
         nota: s.nota,
-        rosterId: s.id // Guardamos referencia al ID del Roster permanente
+        rosterId: s.id, // Guardamos referencia al ID del Roster permanente
+        option: attendance[s.id].option || (esExcursion ? "picnic" : "comedor")
       }));
     
-    const especialesFinal = [...rosterPresentes, ...manualEspeciales];
+    const manualEspecialesConOption = manualEspeciales.map(e => ({
+      ...e,
+      option: e.option || (esExcursion ? "picnic" : "comedor")
+    }));
+
+    const especialesFinal = [...rosterPresentes, ...manualEspecialesConOption];
 
     // 2. Compilar texto final de alumnos alérgicos ausentes
     let ausenciasTextoCompleto = "";
@@ -1002,6 +1040,10 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
           profesorSeQueda: formData.profesorSeQueda,
           profesorNombre: formData.profesorNombre,
           especialesRosterIds: rosterPresentes.map(s => s.rosterId),
+          especialesOptions: rosterPresentes.reduce((acc, s) => {
+            acc[s.rosterId] = s.option;
+            return acc;
+          }, {}),
           manualEspeciales: manualEspeciales,
           manualAusencias: manualAusencias
         }));
@@ -1494,43 +1536,67 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
                     <div className="space-y-2.5">
                       <span className="block text-[11px] font-bold text-slate-400 dark:text-slate-505 uppercase tracking-wider">Alumnos estables con dietas</span>
                       {rosterAlumnos.map(student => {
-                        const att = attendance[student.id] || { asiste: true };
+                        const att = attendance[student.id] || {};
+                        const currentOption = att.option || (att.asiste !== undefined ? (att.asiste ? (esExcursion ? "picnic" : "comedor") : "falta") : (student.tipoHabitual === "no_comedor" ? "falta" : (esExcursion ? "picnic" : "comedor")));
                         return (
                           <div 
                             key={student.id} 
-                            className={`flex justify-between items-center p-3 rounded-xl border transition-all ${
-                              att.asiste 
+                            className={`flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-xl border transition-all gap-2.5 ${
+                              currentOption !== "falta" 
                                 ? "bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/50" 
                                 : "bg-slate-50/50 dark:bg-slate-855/40 border-slate-200 dark:border-slate-800 opacity-60"
                             }`}
                           >
                             <div>
-                              <div className="font-bold text-sm text-slate-800 dark:text-slate-250 flex items-center gap-2">
+                              <div className="font-bold text-sm text-slate-800 dark:text-slate-250 flex items-center gap-2 flex-wrap">
                                 <span>{student.nombre}</span>
                                 {student.dietaBlanda && <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-850 dark:text-emerald-300 px-1.5 py-0.2 rounded text-[9px] uppercase font-bold tracking-wide">Dieta Blanda</span>}
+                                {student.tipoHabitual === "no_comedor" && <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-405 px-1.5 py-0.2 rounded text-[9px] uppercase font-bold tracking-wide">No Comedor</span>}
                               </div>
                               <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{student.nota}</div>
                             </div>
                             
-                            {/* Selector Asiste / Ausente */}
-                            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                            {/* Selector de Opción de Asistencia (Comedor, Ticket, Picnic, Falta) */}
+                            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 w-fit">
                               <button 
                                 type="button"
-                                onClick={() => toggleStudentAttendance(student.id)}
-                                className={`aria-selected:bg-emerald-650 px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
-                                  att.asiste 
-                                    ? "bg-emerald-600 text-white shadow-sm" 
+                                onClick={() => updateStudentAttendanceOption(student.id, "comedor")}
+                                className={`px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
+                                  currentOption === "comedor" 
+                                    ? "bg-blue-650 text-white shadow-sm font-black" 
                                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                                 }`}
                               >
-                                Asiste
+                                Comedor
                               </button>
                               <button 
                                 type="button"
-                                onClick={() => toggleStudentAttendance(student.id)}
+                                onClick={() => updateStudentAttendanceOption(student.id, "ticket")}
                                 className={`px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
-                                  !att.asiste 
-                                    ? "bg-red-500 text-white shadow-sm" 
+                                  currentOption === "ticket" 
+                                    ? "bg-amber-500 text-white shadow-sm font-black" 
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                                }`}
+                              >
+                                Ticket
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => updateStudentAttendanceOption(student.id, "picnic")}
+                                className={`px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
+                                  currentOption === "picnic" 
+                                    ? "bg-purple-600 text-white shadow-sm font-black" 
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                                }`}
+                              >
+                                Picnic
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => updateStudentAttendanceOption(student.id, "falta")}
+                                className={`px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
+                                  currentOption === "falta" 
+                                    ? "bg-red-500 text-white shadow-sm font-black" 
                                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                                 }`}
                               >
@@ -2038,7 +2104,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
     csvContent += "Fecha,Etapa,Curso,Letra,Fijos,Tickets,Total,Profesor" + (actHeaders ? "," + actHeaders : "") + ",Ausencias Alergicos,Dietas Especiales\n";
 
     registros.forEach(r => {
-      const especialesStr = r.especiales?.map(e => `${e.nombre} (${e.dietaBlanda ? 'Blanda. ' : ''}${e.nota})`).join(" | ") || "";
+      const especialesStr = r.especiales?.map(e => `${e.nombre} [${e.option || (r.esExcursion ? 'Picnic' : 'Comedor')}] (${e.dietaBlanda ? 'Blanda. ' : ''}${e.nota})`).join(" | ") || "";
       const row = [
         r.fecha,
         r.etapa,
@@ -2245,6 +2311,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             clase: `${r.curso} ${r.letra}`,
             etapa: r.etapa,
             dietaBlanda: pres.dietaBlanda,
+            option: pres.option || (r.esExcursion ? "picnic" : "comedor"),
             esManual: false
           });
         } else {
@@ -2269,6 +2336,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             clase: `${r.curso} ${r.letra}`,
             etapa: r.etapa,
             dietaBlanda: e.dietaBlanda,
+            option: e.option || (r.esExcursion ? "picnic" : "comedor"),
             esManual: true
           });
         }
@@ -2284,6 +2352,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             clase: `${r.curso} ${r.letra}`,
             etapa: r.etapa,
             nota: e.nota || "Dieta Blanda",
+            option: e.option || (r.esExcursion ? "picnic" : "comedor"),
             esManual: !e.rosterId
           });
         }
@@ -2705,9 +2774,18 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                       <div key={idx} className="p-3 bg-emerald-50/40 dark:bg-emerald-955/10 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl flex flex-col gap-0.5 print:bg-white print:border-slate-300">
                         <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
                           <span className="text-emerald-800 dark:text-emerald-400">{dbStudent.nombre}</span>
-                          <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded text-[9px] uppercase tracking-wide">
-                            {dbStudent.clase}
-                          </span>
+                          <div className="flex gap-1 items-center">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-extrabold ${
+                              dbStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
+                              dbStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
+                              'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
+                            }`}>
+                              {dbStudent.option === 'picnic' ? 'Picnic' : dbStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
+                            </span>
+                            <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-750 dark:text-emerald-305 px-2 py-0.5 rounded text-[9px] uppercase tracking-wide font-bold">
+                              {dbStudent.clase}
+                            </span>
+                          </div>
                         </div>
                         <span className="text-[10.5px] text-slate-550 dark:text-slate-400 italic font-semibold">
                           {dbStudent.nota}
@@ -2752,9 +2830,18 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                                   <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-805 dark:text-emerald-305 px-1 py-0.1 rounded text-[8px] uppercase font-bold scale-90">Blanda</span>
                                 )}
                               </span>
-                              <span className="bg-blue-50 dark:bg-blue-955/35 text-blue-700 dark:text-blue-400 px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                {pStudent.clase}
-                              </span>
+                              <div className="flex gap-1 items-center">
+                                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                  pStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
+                                  pStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
+                                  'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
+                                }`}>
+                                  {pStudent.option === 'picnic' ? 'Picnic' : pStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
+                                </span>
+                                <span className="bg-blue-50 dark:bg-blue-955/35 text-blue-700 dark:text-blue-400 px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                  {pStudent.clase}
+                                </span>
+                              </div>
                             </div>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
                               {pStudent.nota}
@@ -2978,7 +3065,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
 
   // Roster permanente de alumnos
   const [roster, setRoster] = useState([]);
-  const [nuevoAlumno, setNuevoAlumno] = useState({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, alergias: [] });
+  const [nuevoAlumno, setNuevoAlumno] = useState({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, tipoHabitual: "fijo", alergias: [] });
 
   // Estados para gestión de actividades extra
   const [editingActivity, setEditingActivity] = useState(null);
@@ -3058,10 +3145,11 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
         curso: nuevoAlumno.curso,
         letra: nuevoAlumno.letra,
         nota: alergiasFinal.join(", "),
-        dietaBlanda: nuevoAlumno.dietaBlanda
+        dietaBlanda: nuevoAlumno.dietaBlanda,
+        tipoHabitual: nuevoAlumno.tipoHabitual || "fijo"
       });
 
-      setNuevoAlumno({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, alergias: [] });
+      setNuevoAlumno({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, tipoHabitual: "fijo", alergias: [] });
       showToast("Alumno añadido al Roster permanentemente.", "success");
     } catch (err) {
       console.error(err);
@@ -3362,23 +3450,37 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-              <input 
-                type="text" 
-                placeholder="Otra alergia o nota adicional..." 
-                value={nuevoAlumno.nota}
-                onChange={e => setNuevoAlumno(prev => ({ ...prev, nota: e.target.value }))}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-sm"
-              />
-              <label className="flex gap-2 items-center text-xs font-bold text-slate-650 dark:text-slate-400 cursor-pointer bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-755 w-full select-none">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+              <div className="flex flex-col gap-1 text-left justify-end">
+                <input 
+                  type="text" 
+                  placeholder="Otra alergia o nota adicional..." 
+                  value={nuevoAlumno.nota}
+                  onChange={e => setNuevoAlumno(prev => ({ ...prev, nota: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-sm"
+                />
+              </div>
+              <label className="flex gap-2 items-center text-xs font-bold text-slate-650 dark:text-slate-400 cursor-pointer bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-755 w-full select-none h-[38px] self-end">
                 <input 
                   type="checkbox" 
                   className="w-4 h-4 accent-green-600 rounded" 
                   checked={nuevoAlumno.dietaBlanda} 
                   onChange={e => setNuevoAlumno(prev => ({ ...prev, dietaBlanda: e.target.checked }))}
                 /> 
-                <span>Requiere Dieta Blanda (Arroz, pollo, etc.)</span>
+                <span>Dieta Blanda (Arroz, pollo)</span>
               </label>
+              
+              <div className="flex flex-col gap-1 text-left">
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frecuencia Comedor</label>
+                <select 
+                  value={nuevoAlumno.tipoHabitual || "fijo"} 
+                  onChange={e => setNuevoAlumno(prev => ({ ...prev, tipoHabitual: e.target.value }))}
+                  className="w-full px-2.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer h-[38px]"
+                >
+                  <option value="fijo">Suele quedarse (Fijo)</option>
+                  <option value="no_comedor">No suele quedarse (No Comedor)</option>
+                </select>
+              </div>
             </div>
 
             <button 
@@ -3418,6 +3520,9 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                             {student.dietaBlanda && (
                               <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-855 dark:text-emerald-300 px-1.5 py-0.2 rounded text-[9px] uppercase font-black">Blanda</span>
                             )}
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${student.tipoHabitual === 'no_comedor' ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' : 'bg-blue-50 text-blue-700 dark:bg-blue-955/20 dark:text-blue-450'}`}>
+                              {student.tipoHabitual === 'no_comedor' ? 'No Comedor' : 'Fijo'}
+                            </span>
                           </div>
                           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{student.nota}</div>
                         </div>
