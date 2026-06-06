@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* --- VARIABLES DE TEMA Y PALETA --- */
 :root {
   --bg-global: #f8fafc;
