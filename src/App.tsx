@@ -3168,6 +3168,32 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
     }
   };
 
+  const handleUpdateAlumnoRosterFrecuencia = async (id, nuevaFrecuencia) => {
+    try {
+      const docRef = doc(db, "alumnos_especiales", id);
+      await setDoc(docRef, { tipoHabitual: nuevaFrecuencia }, { merge: true });
+      showToast("Frecuencia de comedor actualizada con éxito.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error al actualizar la frecuencia.", "error");
+    }
+  };
+
+  const handleBulkUpdateFrecuencia = async (nuevaFrecuencia) => {
+    const actionWord = nuevaFrecuencia === "fijo" ? "Suelen quedarse (Fijos)" : "No suelen quedarse (No Comedor)";
+    if (!confirm(`¿Seguro que deseas cambiar la frecuencia de TODOS los alumnos especiales a ${actionWord}?`)) return;
+    try {
+      for (const student of roster) {
+        const docRef = doc(db, "alumnos_especiales", student.id);
+        await setDoc(docRef, { tipoHabitual: nuevaFrecuencia }, { merge: true });
+      }
+      showToast("Todos los alumnos alérgicos actualizados en lote.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error al realizar la actualización en lote.", "error");
+    }
+  };
+
   const toggleAllergyFormTag = (tag) => {
     setNuevoAlumno(prev => {
       const act = prev.alergias.includes(tag) 
@@ -3493,8 +3519,26 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
           </div>
 
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <span className="block text-xs font-bold text-slate-400 dark:text-slate-505 uppercase tracking-wider">Alumnos en la Base de Datos ({roster.length})</span>
+              {roster.length > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleBulkUpdateFrecuencia("fijo")}
+                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-955/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-[10px] font-bold rounded-lg transition-colors border border-blue-200/40 dark:border-blue-900/40 flex items-center gap-1"
+                  >
+                    <span>Fijos Todos (Suelen quedarse)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkUpdateFrecuencia("no_comedor")}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 flex items-center gap-1"
+                  >
+                    <span>No Comedor Todos</span>
+                  </button>
+                </div>
+              )}
             </div>
             
             {roster.length === 0 ? (
@@ -3520,9 +3564,19 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                             {student.dietaBlanda && (
                               <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-855 dark:text-emerald-300 px-1.5 py-0.2 rounded text-[9px] uppercase font-black">Blanda</span>
                             )}
-                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${student.tipoHabitual === 'no_comedor' ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' : 'bg-blue-50 text-blue-700 dark:bg-blue-955/20 dark:text-blue-450'}`}>
-                              {student.tipoHabitual === 'no_comedor' ? 'No Comedor' : 'Fijo'}
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateAlumnoRosterFrecuencia(student.id, student.tipoHabitual === 'no_comedor' ? 'fijo' : 'no_comedor')}
+                              className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1 ${
+                                student.tipoHabitual === 'no_comedor' 
+                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700' 
+                                  : 'bg-blue-50 hover:bg-blue-100 text-blue-750 dark:bg-blue-955/20 dark:text-blue-450 dark:hover:bg-blue-955/40'
+                              }`}
+                              title="Haz clic para alternar la frecuencia predeterminada de este alumno"
+                            >
+                              <span>{student.tipoHabitual === 'no_comedor' ? 'No Comedor' : 'Fijo'}</span>
+                              <span className="text-[8px] opacity-70">🔄</span>
+                            </button>
                           </div>
                           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{student.nota}</div>
                         </div>
