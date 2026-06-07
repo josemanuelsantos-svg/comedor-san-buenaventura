@@ -624,7 +624,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
         students.forEach(s => {
           if (newAttendance[s.id] === undefined) {
             let defaultOption = "falta";
-            if (s.tipoHabitual !== "no_comedor") {
+            if (s.tipoHabitual === "fijo") {
               defaultOption = esExcursion ? "picnic" : "comedor";
             }
             newAttendance[s.id] = {
@@ -834,7 +834,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
       const syncAtt = { ...prev };
       Object.keys(syncAtt).forEach(id => {
         const s = rosterAlumnos.find(x => x.id === id);
-        if (s && s.tipoHabitual !== "no_comedor") {
+        if (s && s.tipoHabitual === "fijo") {
           if (esExcursion && syncAtt[id].option === "comedor") {
             syncAtt[id].option = "picnic";
           } else if (!esExcursion && syncAtt[id].option === "picnic") {
@@ -1538,7 +1538,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
                       <span className="block text-[11px] font-bold text-slate-400 dark:text-slate-505 uppercase tracking-wider">Alumnos estables con dietas</span>
                       {rosterAlumnos.map(student => {
                         const att = attendance[student.id] || {};
-                        const currentOption = att.option || (att.asiste !== undefined ? (att.asiste ? (esExcursion ? "picnic" : "comedor") : "falta") : (student.tipoHabitual === "no_comedor" ? "falta" : (esExcursion ? "picnic" : "comedor")));
+                        const currentOption = att.option || (att.asiste !== undefined ? (att.asiste ? (esExcursion ? "picnic" : "comedor") : "falta") : (student.tipoHabitual === "fijo" ? (esExcursion ? "picnic" : "comedor") : "falta"));
                         return (
                           <div 
                             key={student.id} 
@@ -3066,7 +3066,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
 
   // Roster permanente de alumnos
   const [roster, setRoster] = useState([]);
-  const [nuevoAlumno, setNuevoAlumno] = useState({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, tipoHabitual: "fijo", alergias: [] });
+  const [nuevoAlumno, setNuevoAlumno] = useState({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, tipoHabitual: "no_comedor", alergias: [] });
 
   // Estados para gestión de actividades extra
   const [editingActivity, setEditingActivity] = useState(null);
@@ -3147,10 +3147,10 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
         letra: nuevoAlumno.letra,
         nota: alergiasFinal.join(", "),
         dietaBlanda: nuevoAlumno.dietaBlanda,
-        tipoHabitual: nuevoAlumno.tipoHabitual || "fijo"
+        tipoHabitual: nuevoAlumno.tipoHabitual || "no_comedor"
       });
 
-      setNuevoAlumno({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, tipoHabitual: "fijo", alergias: [] });
+      setNuevoAlumno({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, tipoHabitual: "no_comedor", alergias: [] });
       showToast("Alumno añadido al Roster permanentemente.", "success");
     } catch (err) {
       console.error(err);
@@ -3500,12 +3500,12 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
               <div className="flex flex-col gap-1 text-left">
                 <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frecuencia Comedor</label>
                 <select 
-                  value={nuevoAlumno.tipoHabitual || "fijo"} 
+                  value={nuevoAlumno.tipoHabitual || "no_comedor"} 
                   onChange={e => setNuevoAlumno(prev => ({ ...prev, tipoHabitual: e.target.value }))}
                   className="w-full px-2.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer h-[38px]"
                 >
-                  <option value="fijo">Suele quedarse (Fijo)</option>
                   <option value="no_comedor">No suele quedarse (No Comedor)</option>
+                  <option value="fijo">Suele quedarse (Fijo)</option>
                 </select>
               </div>
             </div>
