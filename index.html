@@ -1153,7 +1153,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
   // Alumnos de Roster Ausente compilados para visualización (Mejora 1)
   const rosterAbsentes = useMemo(() => {
     return rosterAlumnos
-      .filter(s => attendance[s.id] && !attendance[s.id].asiste)
+      .filter(s => s.tipoHabitual === "fijo" && attendance[s.id] && attendance[s.id].option === "falta")
       .map(s => `${s.nombre} (${s.nota || "Dieta Especial"})`);
   }, [rosterAlumnos, attendance]);
 
@@ -2692,8 +2692,8 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             option: pres.option || (r.esExcursion ? "picnic" : "comedor"),
             esManual: false
           });
-        } else {
-          // El alumno estable no asiste hoy
+        } else if (s.tipoHabitual === "fijo") {
+          // El alumno estable suele quedarse pero no asiste hoy
           ausentes.push({
             id: s.id,
             nombre: s.nombre,
