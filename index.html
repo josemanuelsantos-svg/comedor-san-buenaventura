@@ -2750,6 +2750,14 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
     };
   }, [registros, roster]);
 
+  const { dietasBlandas, presentes, ausentes } = rosterSpecialsList;
+  const dietasBlandasInfantil = useMemo(() => dietasBlandas.filter(s => s.etapa === "Infantil"), [dietasBlandas]);
+  const dietasBlandasPrimaria = useMemo(() => dietasBlandas.filter(s => s.etapa === "Primaria"), [dietasBlandas]);
+  const presentesInfantil = useMemo(() => presentes.filter(s => s.etapa === "Infantil"), [presentes]);
+  const presentesPrimaria = useMemo(() => presentes.filter(s => s.etapa === "Primaria"), [presentes]);
+  const ausentesInfantil = useMemo(() => ausentes.filter(s => s.etapa === "Infantil"), [ausentes]);
+  const ausentesPrimaria = useMemo(() => ausentes.filter(s => s.etapa === "Primaria"), [ausentes]);
+
   return (
     <div className="space-y-4 animate-fade-in print:space-y-6">
       
@@ -3174,14 +3182,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                   Consolidado diario para Cocina cruzado con el Roster de alumnos
                 </p>
               </div>
-              <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider print:border print:border-slate-400 print:text-black print:bg-transparent">
-                Hoy
-              </span>
-            </div>
-
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
-              
-              {/* COL 1: DIETAS BLANDAS */}
+              <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider print:border print:border-slate-400 print:text-black print:bg-t              {/* COL 1: DIETAS BLANDAS */}
               <div className="space-y-4 text-left">
                 <h4 className="font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
                   <Salad className="w-4 h-4 text-emerald-500" />
@@ -3192,34 +3193,84 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                     No hay solicitudes de dieta blanda hoy.
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                    {rosterSpecialsList.dietasBlandas.map((dbStudent, idx) => (
-                      <div key={idx} className="p-3 bg-emerald-50/40 dark:bg-emerald-955/10 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl flex flex-col gap-0.5 print:bg-white print:border-slate-300">
-                        <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
-                          <span className="text-emerald-800 dark:text-emerald-400">{dbStudent.nombre}</span>
-                          <div className="flex gap-1 items-center">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-extrabold ${
-                              dbStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
-                              dbStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
-                              'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
-                            }`}>
-                              {dbStudent.option === 'picnic' ? 'Picnic' : dbStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
-                            </span>
-                            <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-750 dark:text-emerald-305 px-2 py-0.5 rounded text-[9px] uppercase tracking-wide font-bold">
-                              {dbStudent.clase}
-                            </span>
-                          </div>
+                  <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
+                    {/* INFANTIL */}
+                    {dietasBlandasInfantil.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-extrabold text-pink-600 dark:text-pink-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-pink-100/30 dark:border-pink-900/20 pb-1">
+                          <Shapes className="w-3.5 h-3.5 text-pink-500" />
+                          <span>🍼 Infantil ({dietasBlandasInfantil.length})</span>
                         </div>
-                        <span className="text-[10.5px] text-slate-550 dark:text-slate-400 italic font-semibold">
-                          {dbStudent.nota}
-                        </span>
-                        {dbStudent.esManual && (
-                          <span className="text-[8.5px] text-slate-455 dark:text-slate-500 font-extrabold uppercase mt-1">
-                            Añadido puntual
-                          </span>
-                        )}
+                        <div className="space-y-2">
+                          {dietasBlandasInfantil.map((dbStudent, idx) => (
+                            <div key={`db-inf-${idx}`} className="p-3 bg-emerald-50/40 dark:bg-emerald-955/10 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl flex flex-col gap-0.5 print:bg-white print:border-slate-300">
+                              <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                <span className="text-emerald-800 dark:text-emerald-400">{dbStudent.nombre}</span>
+                                <div className="flex gap-1 items-center">
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-extrabold ${
+                                    dbStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
+                                    dbStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
+                                    'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
+                                  }`}>
+                                    {dbStudent.option === 'picnic' ? 'Picnic' : dbStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
+                                  </span>
+                                  <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-750 dark:text-emerald-305 px-2 py-0.5 rounded text-[9px] uppercase tracking-wide font-bold">
+                                    {dbStudent.clase}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-[10.5px] text-slate-550 dark:text-slate-400 italic font-semibold">
+                                {dbStudent.nota}
+                              </span>
+                              {dbStudent.esManual && (
+                                <span className="text-[8.5px] text-slate-455 dark:text-slate-500 font-extrabold uppercase mt-1">
+                                  Añadido puntual
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* PRIMARIA */}
+                    {dietasBlandasPrimaria.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-blue-100/30 dark:border-blue-900/20 pb-1">
+                          <Backpack className="w-3.5 h-3.5 text-blue-500" />
+                          <span>🎒 Primaria ({dietasBlandasPrimaria.length})</span>
+                        </div>
+                        <div className="space-y-2">
+                          {dietasBlandasPrimaria.map((dbStudent, idx) => (
+                            <div key={`db-pri-${idx}`} className="p-3 bg-emerald-50/40 dark:bg-emerald-955/10 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl flex flex-col gap-0.5 print:bg-white print:border-slate-300">
+                              <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                <span className="text-emerald-800 dark:text-emerald-400">{dbStudent.nombre}</span>
+                                <div className="flex gap-1 items-center">
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-extrabold ${
+                                    dbStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
+                                    dbStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
+                                    'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
+                                  }`}>
+                                    {dbStudent.option === 'picnic' ? 'Picnic' : dbStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
+                                  </span>
+                                  <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-750 dark:text-emerald-305 px-2 py-0.5 rounded text-[9px] uppercase tracking-wide font-bold">
+                                    {dbStudent.clase}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-[10.5px] text-slate-550 dark:text-slate-400 italic font-semibold">
+                                {dbStudent.nota}
+                              </span>
+                              {dbStudent.esManual && (
+                                <span className="text-[8.5px] text-slate-455 dark:text-slate-500 font-extrabold uppercase mt-1">
+                                  Añadido puntual
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -3234,8 +3285,8 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                 <div className="space-y-4">
                   {/* PRESENTES */}
                   <div className="space-y-2">
-                    <div className="text-[10px] font-extrabold text-slate-400 dark:text-slate-505 uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    <div className="text-[10px] font-extrabold text-slate-400 dark:text-slate-505 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800/60 pb-1">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                       <span>Comen Hoy ({rosterSpecialsList.presentes.length})</span>
                     </div>
                     {rosterSpecialsList.presentes.length === 0 ? (
@@ -3243,46 +3294,97 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                         Ningún alumno especial presente hoy.
                       </div>
                     ) : (
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                        {rosterSpecialsList.presentes.map((pStudent, idx) => (
-                          <div key={idx} className="p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-lg flex flex-col gap-0.5 print:bg-white print:border-slate-300">
-                            <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
-                              <span className="flex items-center gap-1">
-                                {pStudent.nombre}
-                                {pStudent.dietaBlanda && (
-                                  <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-805 dark:text-emerald-305 px-1 py-0.1 rounded text-[8px] uppercase font-bold scale-90">Blanda</span>
-                                )}
-                              </span>
-                              <div className="flex gap-1 items-center">
-                                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
-                                  pStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
-                                  pStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
-                                  'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
-                                }`}>
-                                  {pStudent.option === 'picnic' ? 'Picnic' : pStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
-                                </span>
-                                <span className="bg-blue-50 dark:bg-blue-955/35 text-blue-700 dark:text-blue-400 px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                  {pStudent.clase}
-                                </span>
-                              </div>
+                      <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+                        {/* PRESENTES INFANTIL */}
+                        {presentesInfantil.length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="text-[9px] font-extrabold text-pink-650 dark:text-pink-400 uppercase tracking-wider flex items-center gap-1">
+                              <Shapes className="w-3 h-3 text-pink-500" />
+                              <span>🍼 Infantil ({presentesInfantil.length})</span>
                             </div>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
-                              {pStudent.nota}
-                            </span>
-                            {pStudent.esManual && (
-                              <span className="text-[8.5px] text-slate-400 dark:text-slate-500 font-extrabold uppercase mt-0.5">
-                                Añadido puntual
-                              </span>
-                            )}
+                            {presentesInfantil.map((pStudent, idx) => (
+                              <div key={`pres-inf-${idx}`} className="p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-lg flex flex-col gap-0.5 print:bg-white print:border-slate-300">
+                                <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                  <span className="flex items-center gap-1">
+                                    {pStudent.nombre}
+                                    {pStudent.dietaBlanda && (
+                                      <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-805 dark:text-emerald-305 px-1 py-0.1 rounded text-[8px] uppercase font-bold scale-90">Blanda</span>
+                                    )}
+                                  </span>
+                                  <div className="flex gap-1 items-center">
+                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                      pStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
+                                      pStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
+                                      'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
+                                    }`}>
+                                      {pStudent.option === 'picnic' ? 'Picnic' : pStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
+                                    </span>
+                                    <span className="bg-blue-50 dark:bg-blue-955/35 text-blue-700 dark:text-blue-400 px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                      {pStudent.clase}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] text-slate-550 dark:text-slate-400 font-bold">
+                                  {pStudent.nota}
+                                </span>
+                                {pStudent.esManual && (
+                                  <span className="text-[8.5px] text-slate-400 dark:text-slate-500 font-extrabold uppercase mt-0.5">
+                                    Añadido puntual
+                                  </span>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+
+                        {/* PRESENTES PRIMARIA */}
+                        {presentesPrimaria.length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="text-[9px] font-extrabold text-blue-650 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                              <Backpack className="w-3 h-3 text-blue-500" />
+                              <span>🎒 Primaria ({presentesPrimaria.length})</span>
+                            </div>
+                            {presentesPrimaria.map((pStudent, idx) => (
+                              <div key={`pres-pri-${idx}`} className="p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-lg flex flex-col gap-0.5 print:bg-white print:border-slate-300">
+                                <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                  <span className="flex items-center gap-1">
+                                    {pStudent.nombre}
+                                    {pStudent.dietaBlanda && (
+                                      <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-805 dark:text-emerald-305 px-1 py-0.1 rounded text-[8px] uppercase font-bold scale-90">Blanda</span>
+                                    )}
+                                  </span>
+                                  <div className="flex gap-1 items-center">
+                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                      pStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
+                                      pStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
+                                      'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
+                                    }`}>
+                                      {pStudent.option === 'picnic' ? 'Picnic' : pStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
+                                    </span>
+                                    <span className="bg-blue-50 dark:bg-blue-955/35 text-blue-700 dark:text-blue-400 px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                      {pStudent.clase}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] text-slate-550 dark:text-slate-400 font-bold">
+                                  {pStudent.nota}
+                                </span>
+                                {pStudent.esManual && (
+                                  <span className="text-[8.5px] text-slate-400 dark:text-slate-500 font-extrabold uppercase mt-0.5">
+                                    Añadido puntual
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
 
                   {/* AUSENTES */}
                   <div className="space-y-2 border-t border-dashed border-slate-100 dark:border-slate-800 pt-3">
-                    <div className="text-[10px] font-extrabold text-slate-400 dark:text-slate-505 uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="text-[10px] font-extrabold text-slate-400 dark:text-slate-505 uppercase tracking-wider flex items-center gap-1.5 pb-1">
                       <span className="w-2 h-2 rounded-full bg-red-500"></span>
                       <span>Ausentes - No preparar ({rosterSpecialsList.ausentes.length})</span>
                     </div>
@@ -3291,23 +3393,58 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                         No hay ausencias de alumnos especiales hoy.
                       </div>
                     ) : (
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                        {rosterSpecialsList.ausentes.map((aStudent, idx) => (
-                          <div key={idx} className="p-2 bg-slate-50/50 dark:bg-slate-850/40 border border-slate-100/50 dark:border-slate-800/60 rounded-lg flex justify-between items-center opacity-70 print:bg-white print:border-slate-200 print:opacity-100">
-                            <div className="flex flex-col text-left">
-                              <span className="font-bold text-slate-650 dark:text-slate-400 text-xs line-through print:no-underline">{aStudent.nombre}</span>
-                              <span className="text-[9.5px] text-slate-400 dark:text-slate-505 font-semibold">{aStudent.nota}</span>
+                      <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+                        {/* AUSENTES INFANTIL */}
+                        {ausentesInfantil.length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="text-[9px] font-extrabold text-pink-650 dark:text-pink-400 uppercase tracking-wider flex items-center gap-1">
+                              <Shapes className="w-3 h-3 text-pink-500" />
+                              <span>🍼 Infantil ({ausentesInfantil.length})</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <span className="bg-red-50 dark:bg-red-955/20 text-red-650 dark:text-red-400 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase">
-                                Ausente
-                              </span>
-                              <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-450 px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                {aStudent.clase}
-                              </span>
-                            </div>
+                            {ausentesInfantil.map((aStudent, idx) => (
+                              <div key={`aus-inf-${idx}`} className="p-2 bg-slate-50/50 dark:bg-slate-850/40 border border-slate-100/50 dark:border-slate-800/60 rounded-lg flex justify-between items-center opacity-70 print:bg-white print:border-slate-200 print:opacity-100">
+                                <div className="flex flex-col text-left">
+                                  <span className="font-bold text-slate-655 dark:text-slate-400 text-xs line-through print:no-underline">{aStudent.nombre}</span>
+                                  <span className="text-[9.5px] text-slate-400 dark:text-slate-505 font-semibold">{aStudent.nota}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="bg-red-50 dark:bg-red-955/20 text-red-650 dark:text-red-400 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase">
+                                    Ausente
+                                  </span>
+                                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-455 px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                    {aStudent.clase}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+
+                        {/* AUSENTES PRIMARIA */}
+                        {ausentesPrimaria.length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="text-[9px] font-extrabold text-blue-650 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                              <Backpack className="w-3 h-3 text-blue-500" />
+                              <span>🎒 Primaria ({ausentesPrimaria.length})</span>
+                            </div>
+                            {ausentesPrimaria.map((aStudent, idx) => (
+                              <div key={`aus-pri-${idx}`} className="p-2 bg-slate-50/50 dark:bg-slate-850/40 border border-slate-100/50 dark:border-slate-800/60 rounded-lg flex justify-between items-center opacity-70 print:bg-white print:border-slate-200 print:opacity-100">
+                                <div className="flex flex-col text-left">
+                                  <span className="font-bold text-slate-655 dark:text-slate-400 text-xs line-through print:no-underline">{aStudent.nombre}</span>
+                                  <span className="text-[9.5px] text-slate-400 dark:text-slate-505 font-semibold">{aStudent.nota}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="bg-red-50 dark:bg-red-955/20 text-red-650 dark:text-red-400 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase">
+                                    Ausente
+                                  </span>
+                                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-455 px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                    {aStudent.clase}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
