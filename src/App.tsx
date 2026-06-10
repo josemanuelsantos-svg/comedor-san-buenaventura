@@ -497,6 +497,53 @@ export default function App() {
         </div>
       )}
 
+      {/* Modal de Ayuda e Instrucciones */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in print:hidden">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full shadow-2xl relative border border-slate-100 dark:border-slate-700 animate-scale-80">
+            <button 
+              onClick={() => setShowHelp(false)} 
+              className="absolute top-3 right-3 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-650"
+            >
+              <X className="w-4 h-4"/>
+            </button>
+            
+            <div className="space-y-4 text-left">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-150 dark:border-slate-700">
+                <HelpCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base">Instrucciones y Ayuda</h3>
+              </div>
+              
+              <div className="text-xs text-slate-650 dark:text-slate-300 space-y-3 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+                <p>
+                  Bienvenido a la aplicación de gestión del <strong>Comedor San Buenaventura</strong>. A continuación se detallan las normas de registro de datos:
+                </p>
+                
+                <h4 className="font-bold text-slate-800 dark:text-slate-200">Para Profesores (Registro Diario)</h4>
+                <ul className="list-disc pl-5 space-y-1.5">
+                  <li><strong>Total de comensales:</strong> Los campos de <strong>Fijos</strong> y <strong>Tickets</strong> representan el número total de alumnos de cada tipo que comen hoy (incluyendo a los alumnos con alérgenos o dietas especiales).</li>
+                  <li><strong>Dietas Especiales:</strong> En el Paso 3, configure individualmente para cada alumno de la lista su asistencia (Comedor, Picnic, Ticket o Falta).</li>
+                  <li><strong>Ajuste automático:</strong> Si marca a un alumno como Falta, el sistema sabrá que no preparar su comida, pero recuerde ajustar el total de fijos o de tickets en la entrada principal si corresponde.</li>
+                </ul>
+
+                <h4 className="font-bold text-slate-800 dark:text-slate-200">Para Cocina y Administración</h4>
+                <ul className="list-disc pl-5 space-y-1.5">
+                  <li><strong>Resumen consolidado:</strong> Los totales de menús y picnics en el dashboard se calculan cruzando las asistencias y opciones elegidas por los profesores.</li>
+                  <li><strong>Dietas y alérgenos:</strong> En el panel diario de cocina verá a los alumnos de <strong>Infantil</strong> y <strong>Primaria</strong> agrupados en columnas diferenciando quiénes comen hoy y quiénes faltan.</li>
+                </ul>
+              </div>
+              
+              <button 
+                onClick={() => setShowHelp(false)} 
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-500/10 text-xs transition-all"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Contenido Principal */}
       <main className="max-w-3xl mx-auto p-4 print:p-0 print:max-w-none">
         {view === "teacher" && (
@@ -950,11 +997,31 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
   };
 
   const currentTotal = (Number(formData.fijos) || 0) + (Number(formData.tickets) || 0);
-  
-  // Buscar si esta clase ya fue registrada hoy
-  const yaRegistrado = useMemo(() => {
-    return registrosHoy.find(r => r.etapa === formData.etapa && r.curso === formData.curso && r.letra === formData.letra);
-  }, [registrosHoy, formData.etapa, formData.curso, formData.letra]);
+
+  const [yaRegistrado, setYaRegistrado] = useState(null);
+
+  // Escuchar en tiempo real si esta clase y fecha concreta ya están registradas
+  useEffect(() => {
+    if (!formData.etapa || !formData.curso || !formData.letra) {
+      setYaRegistrado(null);
+      return;
+    }
+    const targetDate = esExcursion && fechaExcursion ? fechaExcursion : getLocalISODate();
+    const docId = `${targetDate}_${formData.etapa}_${formData.curso}_${formData.letra}`;
+    
+    const docRef = doc(db, "registros_diarios", docId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setYaRegistrado({ id: docSnap.id, ...docSnap.data() });
+      } else {
+        setYaRegistrado(null);
+      }
+    }, (err) => {
+      console.error("Error al escuchar registro de aula:", err);
+    });
+    
+    return () => unsubscribe();
+  }, [formData.etapa, formData.curso, formData.letra, esExcursion, fechaExcursion, db]);
 
   const handleSubmit = async () => {
     if (yaRegistrado && !isEditing) return;
@@ -1915,21 +1982,41 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
       
       totTickets += tickets;
 
+      // Calcular el desglose real de comensales (Menú caliente vs Picnic) cruzándolo con las opciones individuales
+      let specialsPicnic = 0;
+      let specialsComedorOrTicket = 0;
+      if (r.especiales) {
+        r.especiales.forEach(e => {
+          if (e.option === "picnic") {
+            specialsPicnic++;
+          } else if (e.option === "comedor" || e.option === "ticket") {
+            specialsComedorOrTicket++;
+          }
+        });
+      }
+
+      let classComedor = 0;
+      let classPicnic = 0;
+
+      if (r.esExcursion) {
+        // En caso de excursión global, todos son Picnic excepto los especiales que indicaron comedor/ticket caliente
+        classPicnic = Math.max(0, t - specialsComedorOrTicket);
+        classComedor = specialsComedorOrTicket;
+      } else {
+        // En día normal, todos son Menú caliente excepto los especiales que indicaron Picnic
+        classComedor = Math.max(0, t - specialsPicnic);
+        classPicnic = specialsPicnic;
+      }
+
       if (r.etapa === "Infantil") {
         totInfTickets += tickets;
-        if (r.esExcursion) {
-          totInfPicnic += t;
-        } else {
-          totInfComedor += t;
-        }
+        totInfComedor += classComedor;
+        totInfPicnic += classPicnic;
         infantil.push(r);
       } else {
         totPriTickets += tickets;
-        if (r.esExcursion) {
-          totPriPicnic += t;
-        } else {
-          totPriComedor += t;
-        }
+        totPriComedor += classComedor;
+        totPriPicnic += classPicnic;
         primaria.push(r);
       }
       if (r.especiales) totalDietas += r.especiales.length;
@@ -2230,16 +2317,56 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
        </div>
        
        <div className="text-[10.5px] text-slate-500 font-semibold flex flex-wrap gap-1.5 print:text-black">
-          {r.esExcursion ? (
-            <span className="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-md border border-purple-150/40 dark:border-purple-900/40 print:bg-transparent print:text-black print:border-slate-300 flex items-center gap-1 font-bold">
-              🎒 Excursión: {(r.fijos||0)+(r.tickets||0)} Picnics ({r.fijos||0} F, {r.tickets||0} T)
-            </span>
-          ) : (
-            <>
-              <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-150/40 dark:border-blue-900/40 print:bg-transparent print:text-black print:border-slate-300">{r.fijos||0} Fijos</span>
-              <span className="bg-amber-50 dark:bg-amber-955/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-150/40 dark:border-amber-900/40 print:bg-transparent print:text-black print:border-slate-300">{r.tickets||0} Tickets</span>
-            </>
-          )}
+          {(() => {
+            const f = Number(r.fijos) || 0;
+            const tk = Number(r.tickets) || 0;
+            const totalSt = f + tk;
+            
+            let spPicnic = 0;
+            let spComedorOrTicket = 0;
+            (r.especiales || []).forEach(e => {
+              if (e.option === "picnic") {
+                spPicnic++;
+              } else if (e.option === "comedor" || e.option === "ticket") {
+                spComedorOrTicket++;
+              }
+            });
+
+            let cComedor = 0;
+            let cPicnic = 0;
+            if (r.esExcursion) {
+              cPicnic = Math.max(0, totalSt - spComedorOrTicket);
+              cComedor = spComedorOrTicket;
+            } else {
+              cComedor = Math.max(0, totalSt - spPicnic);
+              cPicnic = spPicnic;
+            }
+
+            return (
+              <>
+                {r.esExcursion && (
+                  <span className="bg-purple-50 dark:bg-purple-955/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-md border border-purple-150/40 dark:border-purple-900/40 print:bg-transparent print:text-black print:border-slate-300 flex items-center gap-1 font-bold">
+                    🎒 Excursión ({f} F, {tk} T)
+                  </span>
+                )}
+                {cComedor > 0 && (
+                  <span className="bg-blue-50 dark:bg-blue-955/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-150/40 dark:border-blue-900/40 print:bg-transparent print:text-black print:border-slate-300">
+                    🍽️ Menú: {cComedor}
+                  </span>
+                )}
+                {cPicnic > 0 && (
+                  <span className="bg-purple-50 dark:bg-purple-955/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-md border border-purple-150/40 dark:border-purple-900/40 print:bg-transparent print:text-black print:border-slate-300">
+                    🎒 Picnic: {cPicnic}
+                  </span>
+                )}
+                {tk > 0 && !r.esExcursion && (
+                  <span className="bg-amber-50 dark:bg-amber-955/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-150/40 dark:border-amber-900/40 print:bg-transparent print:text-black print:border-slate-300">
+                    🎫 Tickets: {tk}
+                  </span>
+                )}
+              </>
+            );
+          })()}
            {(appSettings.actividades || []).map(act => {
              const val = Number(r[act.id]) || 0;
              if (val <= 0) return null;
