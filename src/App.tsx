@@ -2805,7 +2805,14 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                   Consolidado diario para Cocina cruzado con el Roster de alumnos
                 </p>
               </div>
-              <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider print:border print:border-slate-400 print:text-black print:bg-t              {/* COL 1: DIETAS BLANDAS */}
+              <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider print:border print:border-slate-400 print:text-black print:bg-transparent">
+                Hoy
+              </span>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
+              
+              {/* COL 1: DIETAS BLANDAS */}
               <div className="space-y-4 text-left">
                 <h4 className="font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
                   <Salad className="w-4 h-4 text-emerald-500" />
