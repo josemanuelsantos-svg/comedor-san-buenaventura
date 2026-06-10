@@ -1901,6 +1901,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
   const stats = useMemo(() => {
     let totInfComedor = 0, totPriComedor = 0;
     let totInfPicnic = 0, totPriPicnic = 0;
+    let totInfTickets = 0, totPriTickets = 0;
     let totTickets = 0;
     const infantil = [];
     const primaria = [];
@@ -1915,6 +1916,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
       totTickets += tickets;
 
       if (r.etapa === "Infantil") {
+        totInfTickets += tickets;
         if (r.esExcursion) {
           totInfPicnic += t;
         } else {
@@ -1922,6 +1924,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
         }
         infantil.push(r);
       } else {
+        totPriTickets += tickets;
         if (r.esExcursion) {
           totPriPicnic += t;
         } else {
@@ -1949,6 +1952,8 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
       totPriComedor,
       totInfPicnic,
       totPriPicnic,
+      totInfTickets,
+      totPriTickets,
       totComedor,
       totPicnics,
       totInf: totInfComedor + totInfPicnic,
@@ -2436,27 +2441,31 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
               <thead>
                 <tr>
                   <th>ETAPA</th>
-                  <th>FIJOS + TICKETS</th>
-                  <th>TICKETS SUELTOS</th>
+                  <th>COMEDOR (MENÚ)</th>
+                  <th>PICNIC (EXCURSIÓN)</th>
+                  <th>TICKETS INCLUIDOS</th>
                   <th>TOTAL ASISTENCIAS</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>INFANTIL</td>
-                  <td>{stats.totInf}</td>
-                  <td>-</td>
-                  <td>{stats.totInf}</td>
+                  <td style={{ fontWeight: 'bold' }}>INFANTIL</td>
+                  <td>{stats.totInfComedor}</td>
+                  <td>{stats.totInfPicnic}</td>
+                  <td>{stats.totInfTickets}</td>
+                  <td style={{ fontWeight: 'bold' }}>{stats.totInf}</td>
                 </tr>
                 <tr>
-                  <td>PRIMARIA</td>
-                  <td>{stats.totPri}</td>
-                  <td>-</td>
-                  <td>{stats.totPri}</td>
+                  <td style={{ fontWeight: 'bold' }}>PRIMARIA</td>
+                  <td>{stats.totPriComedor}</td>
+                  <td>{stats.totPriPicnic}</td>
+                  <td>{stats.totPriTickets}</td>
+                  <td style={{ fontWeight: 'bold' }}>{stats.totPri}</td>
                 </tr>
-                <tr style={{ fontWeight: 'bold' }}>
+                <tr style={{ fontWeight: 'bold', backgroundColor: '#f1f5f9' }}>
                   <td>TOTAL ACUMULADO</td>
-                  <td>{stats.total}</td>
+                  <td>{stats.totComedor}</td>
+                  <td>{stats.totPicnics}</td>
                   <td>{stats.totTickets}</td>
                   <td style={{ fontSize: '14pt', border: '2px solid black' }}>{stats.total} Platos</td>
                 </tr>
@@ -2699,15 +2708,33 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2 print:gap-4">
             {/* INFANTIL COL */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden h-fit border border-pink-100/50 dark:border-pink-955/30 print:shadow-none print:border-slate-300 print:rounded-lg print-card">
-              <div className="bg-pink-50/60 dark:bg-pink-950/20 px-4 py-3 border-b border-pink-100 dark:border-pink-955/30 flex justify-between items-center print:bg-slate-100 print:border-slate-300">
-                 <h3 className="font-bold text-pink-700 dark:text-pink-400 text-sm flex gap-2 items-center print:text-black">
-                   <Shapes className="w-4 h-4 text-pink-500"/> INFANTIL
-                 </h3>
-                 {loading ? (
-                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-pink-400" />
-                 ) : (
-                   <span className="text-[10px] bg-pink-100 dark:bg-pink-950 text-pink-805 dark:text-pink-300 px-2 py-0.5 rounded-full font-bold">{stats.infantil.length} grupos</span>
-                 )}
+              <div className="bg-pink-50/60 dark:bg-pink-950/20 px-4 py-3 border-b border-pink-100 dark:border-pink-955/30 flex flex-col gap-2.5 print:bg-slate-100 print:border-slate-300">
+                <div className="flex justify-between items-center w-full">
+                  <h3 className="font-bold text-pink-700 dark:text-pink-400 text-sm flex gap-2 items-center print:text-black">
+                    <Shapes className="w-4 h-4 text-pink-500"/> INFANTIL
+                  </h3>
+                  {loading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-pink-400" />
+                  ) : (
+                    <span className="text-[10px] bg-pink-100 dark:bg-pink-950 text-pink-805 dark:text-pink-300 px-2 py-0.5 rounded-full font-bold">{stats.infantil.length} grupos</span>
+                  )}
+                </div>
+                {!loading && (
+                  <div className="flex flex-wrap gap-2 text-[10.5px]">
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-pink-755 dark:text-pink-300 flex items-center gap-1">
+                      🍽️ Menú: <strong className="font-bold text-pink-900 dark:text-white">{stats.totInfComedor}</strong>
+                    </span>
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
+                      🎒 Picnic: <strong className="font-bold text-purple-900 dark:text-white">{stats.totInfPicnic}</strong>
+                    </span>
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-amber-755 dark:text-amber-300 flex items-center gap-1">
+                      🎫 Tickets: <strong className="font-bold text-amber-900 dark:text-white">{stats.totInfTickets}</strong>
+                    </span>
+                    <span className="bg-pink-600 text-white px-2 py-0.5 rounded-md font-bold flex items-center gap-1 print:bg-pink-650 ml-auto">
+                      Total: <strong>{stats.totInf}</strong>
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="divide-y divide-pink-50/50 dark:divide-pink-955/10">
                 {stats.infantil.length > 0 ? (
@@ -2720,15 +2747,33 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
 
             {/* PRIMARIA COL */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden h-fit border border-blue-100/50 dark:border-blue-950/30 print:shadow-none print:border-slate-300 print:rounded-lg print-card">
-              <div className="bg-blue-50/60 dark:bg-blue-950/20 px-4 py-3 border-b border-blue-100 dark:border-blue-955/30 flex justify-between items-center print:bg-slate-100 print:border-slate-300">
-                 <h3 className="font-bold text-blue-700 dark:text-blue-400 text-sm flex gap-2 items-center print:text-black">
-                   <Backpack className="w-4 h-4 text-blue-550"/> PRIMARIA
-                 </h3>
-                 {loading ? (
-                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                 ) : (
-                   <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-805 dark:text-blue-300 px-2 py-0.5 rounded-full font-bold">{stats.primaria.length} grupos</span>
-                 )}
+              <div className="bg-blue-50/60 dark:bg-blue-950/20 px-4 py-3 border-b border-blue-100 dark:border-blue-955/30 flex flex-col gap-2.5 print:bg-slate-100 print:border-slate-300">
+                <div className="flex justify-between items-center w-full">
+                  <h3 className="font-bold text-blue-700 dark:text-blue-400 text-sm flex gap-2 items-center print:text-black">
+                    <Backpack className="w-4 h-4 text-blue-550"/> PRIMARIA
+                  </h3>
+                  {loading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                  ) : (
+                    <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-805 dark:text-blue-300 px-2 py-0.5 rounded-full font-bold">{stats.primaria.length} grupos</span>
+                  )}
+                </div>
+                {!loading && (
+                  <div className="flex flex-wrap gap-2 text-[10.5px]">
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-blue-755 dark:text-blue-300 flex items-center gap-1">
+                      🍽️ Menú: <strong className="font-bold text-blue-900 dark:text-white">{stats.totPriComedor}</strong>
+                    </span>
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
+                      🎒 Picnic: <strong className="font-bold text-purple-900 dark:text-white">{stats.totPriPicnic}</strong>
+                    </span>
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-amber-755 dark:text-amber-300 flex items-center gap-1">
+                      🎫 Tickets: <strong className="font-bold text-amber-900 dark:text-white">{stats.totPriTickets}</strong>
+                    </span>
+                    <span className="bg-blue-600 text-white px-2 py-0.5 rounded-md font-bold flex items-center gap-1 print:bg-blue-650 ml-auto">
+                      Total: <strong>{stats.totPri}</strong>
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="divide-y divide-blue-50/50 dark:divide-blue-955/10">
                 {stats.primaria.length > 0 ? (
