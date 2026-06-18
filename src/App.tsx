@@ -109,7 +109,7 @@ const updateDailyTotals = async (db, date) => {
       if (r.especiales) {
         totalDietas += r.especiales.length;
       }
-      if (r.ausencias && r.ausencias.trim().length > 0) {
+      if (r.ausencias && typeof r.ausencias === "string" && r.ausencias.trim().length > 0) {
         totalAusencias++;
       }
       
@@ -173,6 +173,22 @@ export default function App() {
     }
     return DEFAULT_SETTINGS;
   });
+
+  // Sincronizar configuraciones generales desde Firestore (para multi-dispositivo)
+  useEffect(() => {
+    if (!user) return;
+    const docRef = doc(db, "configuracion", "general");
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setAppSettings(data);
+        localStorage.setItem("comedor_settings", JSON.stringify(data));
+      }
+    }, (err) => {
+      console.error("Error al cargar configuración desde Firestore:", err);
+    });
+    return () => unsubscribe();
+  }, [user, db]);
 
   // Modo Oscuro
   const [darkMode, setDarkMode] = useState(() => {
@@ -270,6 +286,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     setLoadingData(true);
+    setRegistros([]); // Limpiar registros anteriores para evitar mostrar datos obsoletos de otras fechas mientras carga
     const targetDate = view === "teacher" ? getLocalISODate() : selectedDate; 
     
     const q = query(
@@ -326,10 +343,16 @@ export default function App() {
     showToast("Sesión de administración cerrada con éxito.", "info");
   };
 
-  const saveSettings = (newSettings) => {
+  const saveSettings = async (newSettings) => {
     setAppSettings(newSettings);
     localStorage.setItem("comedor_settings", JSON.stringify(newSettings));
-    showToast("Configuración guardada correctamente.", "success");
+    try {
+      await setDoc(doc(db, "configuracion", "general"), newSettings);
+      showToast("Configuración guardada y sincronizada en la nube.", "success");
+    } catch (err) {
+      console.error("Error al sincronizar ajustes en Firestore:", err);
+      showToast("Configuración guardada localmente.", "warning");
+    }
   };
 
   if (!user && authError) return (
@@ -1117,8 +1140,10 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
         }));
       }
 
-      // 4. Recalcular los totales diarios agregados (Mejora 3)
-      await updateDailyTotals(db, targetDate);
+      // 4. Recalcular los totales diarios agregados (Mejora 3) en segundo plano para evitar bloqueos
+      updateDailyTotals(db, targetDate).catch(err => {
+        console.error("Error al actualizar totales diarios en segundo plano:", err);
+      });
       
       setSending(false); 
       setCompleted(true);
@@ -1975,6 +2000,11 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
     let totalDietas = 0;
     let totalAusencias = 0;
 
+    let totInfComedorEstandar = 0, totInfComedorEspecial = 0;
+    let totPriComedorEstandar = 0, totPriComedorEspecial = 0;
+    let totInfPicnicEstandar = 0, totInfPicnicEspecial = 0;
+    let totPriPicnicEstandar = 0, totPriPicnicEspecial = 0;
+
     registros.forEach(r => {
       const fijos = Number(r.fijos) || 0;
       const tickets = Number(r.tickets) || 0;
@@ -1982,41 +2012,42 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
       
       totTickets += tickets;
 
-      // Calcular el desglose real de comensales (Menú caliente vs Picnic) cruzándolo con las opciones individuales
-      let specialsPicnic = 0;
-      let specialsComedorOrTicket = 0;
-      if (r.especiales) {
-        r.especiales.forEach(e => {
-          if (e.option === "picnic") {
-            specialsPicnic++;
-          } else if (e.option === "comedor" || e.option === "ticket") {
-            specialsComedorOrTicket++;
-          }
-        });
-      }
+      const specialsCount = r.especiales ? r.especiales.length : 0;
 
       let classComedor = 0;
       let classPicnic = 0;
 
       if (r.esExcursion) {
-        // En caso de excursión global, todos son Picnic excepto los especiales que indicaron comedor/ticket caliente
-        classPicnic = Math.max(0, t - specialsComedorOrTicket);
-        classComedor = specialsComedorOrTicket;
+        classPicnic = t;
+        classComedor = 0;
       } else {
-        // En día normal, todos son Menú caliente excepto los especiales que indicaron Picnic
-        classComedor = Math.max(0, t - specialsPicnic);
-        classPicnic = specialsPicnic;
+        classComedor = t;
+        classPicnic = 0;
       }
+
+      const classComedorEstandar = r.esExcursion ? 0 : Math.max(0, t - specialsCount);
+      const classComedorEspecial = r.esExcursion ? 0 : Math.min(t, specialsCount);
+      
+      const classPicnicEstandar = r.esExcursion ? Math.max(0, t - specialsCount) : 0;
+      const classPicnicEspecial = r.esExcursion ? Math.min(t, specialsCount) : 0;
 
       if (r.etapa === "Infantil") {
         totInfTickets += tickets;
         totInfComedor += classComedor;
         totInfPicnic += classPicnic;
+        totInfComedorEstandar += classComedorEstandar;
+        totInfComedorEspecial += classComedorEspecial;
+        totInfPicnicEstandar += classPicnicEstandar;
+        totInfPicnicEspecial += classPicnicEspecial;
         infantil.push(r);
       } else {
         totPriTickets += tickets;
         totPriComedor += classComedor;
         totPriPicnic += classPicnic;
+        totPriComedorEstandar += classComedorEstandar;
+        totPriComedorEspecial += classComedorEspecial;
+        totPriPicnicEstandar += classPicnicEstandar;
+        totPriPicnicEspecial += classPicnicEspecial;
         primaria.push(r);
       }
       if (r.especiales) totalDietas += r.especiales.length;
@@ -2050,9 +2081,78 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
       infantil, 
       primaria, 
       totalDietas, 
-      totalAusencias 
+      totalAusencias,
+      totInfComedorEstandar,
+      totInfComedorEspecial,
+      totPriComedorEstandar,
+      totPriComedorEspecial,
+      totInfPicnicEstandar,
+      totInfPicnicEspecial,
+      totPriPicnicEstandar,
+      totPriPicnicEspecial,
+      totComedorEstandar: totInfComedorEstandar + totPriComedorEstandar,
+      totComedorEspecial: totInfComedorEspecial + totPriComedorEspecial,
+      totPicnicsEstandar: totInfPicnicEstandar + totPriPicnicEstandar,
+      totPicnicsEspecial: totInfPicnicEspecial + totPriPicnicEspecial
     };
   }, [registros]);
+
+  // Recalcular y guardar totales_diarios en caliente (Mejora 3)
+  useEffect(() => {
+    if (!db || registros.length === 0) return;
+
+    let totInf = 0;
+    let totPri = 0;
+    let totTickets = 0;
+    let totalDietas = 0;
+    let totalAusencias = 0;
+    const clasesRegistradas = [];
+
+    registros.forEach(r => {
+      const fijos = Number(r.fijos) || 0;
+      const tickets = Number(r.tickets) || 0;
+      const t = fijos + tickets;
+
+      totTickets += tickets;
+      if (r.etapa === "Infantil") {
+        totInf += t;
+      } else {
+        totPri += t;
+      }
+
+      if (r.especiales) {
+        totalDietas += r.especiales.length;
+      }
+      if (r.ausencias && typeof r.ausencias === "string" && r.ausencias.trim().length > 0) {
+        totalAusencias++;
+      }
+
+      clasesRegistradas.push(`${r.etapa}_${r.curso}_${r.letra}`);
+    });
+
+    const updateDoc = async () => {
+      try {
+        await setDoc(doc(db, "totales_diarios", selectedDate), {
+          fecha: selectedDate,
+          totInf,
+          totPri,
+          total: totInf + totPri,
+          totTickets,
+          totalDietas,
+          totalAusencias,
+          clasesRegistradas,
+          lastUpdated: Date.now()
+        }, { merge: true });
+        console.log("Totales diarios consolidados guardados para:", selectedDate);
+      } catch (err) {
+        console.error("Error al actualizar totales_diarios desde AdminView:", err);
+      }
+    };
+
+    // Debounce de 1.5 segundos para evitar escrituras masivas
+    const timer = setTimeout(updateDoc, 1500);
+    return () => clearTimeout(timer);
+  }, [registros, selectedDate, db]);
 
   // Cargar datos de tendencias optimizados desde totales_diarios (Mejora 3)
   useEffect(() => {
@@ -2322,24 +2422,16 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             const tk = Number(r.tickets) || 0;
             const totalSt = f + tk;
             
-            let spPicnic = 0;
-            let spComedorOrTicket = 0;
-            (r.especiales || []).forEach(e => {
-              if (e.option === "picnic") {
-                spPicnic++;
-              } else if (e.option === "comedor" || e.option === "ticket") {
-                spComedorOrTicket++;
-              }
-            });
+            const specialsCount = r.especiales ? r.especiales.length : 0;
 
             let cComedor = 0;
             let cPicnic = 0;
             if (r.esExcursion) {
-              cPicnic = Math.max(0, totalSt - spComedorOrTicket);
-              cComedor = spComedorOrTicket;
+              cPicnic = totalSt;
+              cComedor = 0;
             } else {
-              cComedor = Math.max(0, totalSt - spPicnic);
-              cPicnic = spPicnic;
+              cComedor = totalSt;
+              cPicnic = 0;
             }
 
             return (
@@ -2350,14 +2442,28 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                   </span>
                 )}
                 {cComedor > 0 && (
-                  <span className="bg-blue-50 dark:bg-blue-955/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-150/40 dark:border-blue-900/40 print:bg-transparent print:text-black print:border-slate-300">
-                    🍽️ Menú: {cComedor}
-                  </span>
+                  <>
+                    <span className="bg-blue-50 dark:bg-blue-955/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-150/40 dark:border-blue-900/40 print:bg-transparent print:text-black print:border-slate-300">
+                      🍽️ Menú Estándar: {Math.max(0, cComedor - specialsCount)}
+                    </span>
+                    {specialsCount > 0 && (
+                      <span className="bg-emerald-50 dark:bg-emerald-955/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-150/40 dark:border-emerald-900/40 print:bg-transparent print:text-black print:border-slate-300">
+                        🥗 Menú Especial: {specialsCount}
+                      </span>
+                    )}
+                  </>
                 )}
                 {cPicnic > 0 && (
-                  <span className="bg-purple-50 dark:bg-purple-955/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-md border border-purple-150/40 dark:border-purple-900/40 print:bg-transparent print:text-black print:border-slate-300">
-                    🎒 Picnic: {cPicnic}
-                  </span>
+                  <>
+                    <span className="bg-purple-50 dark:bg-purple-955/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-md border border-purple-150/40 dark:border-purple-900/40 print:bg-transparent print:text-black print:border-slate-300">
+                      🎒 Picnic Estándar: {Math.max(0, cPicnic - specialsCount)}
+                    </span>
+                    {specialsCount > 0 && (
+                      <span className="bg-fuchsia-50 dark:bg-fuchsia-955/40 text-fuchsia-700 dark:text-fuchsia-300 px-2 py-0.5 rounded-md border border-fuchsia-150/40 dark:border-fuchsia-900/40 print:bg-transparent print:text-black print:border-slate-300">
+                        🎒 Picnic Especial: {specialsCount}
+                      </span>
+                    )}
+                  </>
                 )}
                 {tk > 0 && !r.esExcursion && (
                   <span className="bg-amber-50 dark:bg-amber-955/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-150/40 dark:border-amber-900/40 print:bg-transparent print:text-black print:border-slate-300">
@@ -2576,8 +2682,10 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
               <thead>
                 <tr>
                   <th>ETAPA</th>
-                  <th>COMEDOR (MENÚ)</th>
-                  <th>PICNIC (EXCURSIÓN)</th>
+                  <th>MENÚ ESTÁNDAR</th>
+                  <th>MENÚ ESPECIAL</th>
+                  <th>PICNIC ESTÁNDAR</th>
+                  <th>PICNIC ESPECIAL</th>
                   <th>TICKETS INCLUIDOS</th>
                   <th>TOTAL ASISTENCIAS</th>
                 </tr>
@@ -2585,22 +2693,28 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
               <tbody>
                 <tr>
                   <td style={{ fontWeight: 'bold' }}>INFANTIL</td>
-                  <td>{stats.totInfComedor}</td>
-                  <td>{stats.totInfPicnic}</td>
+                  <td>{stats.totInfComedorEstandar}</td>
+                  <td>{stats.totInfComedorEspecial}</td>
+                  <td>{stats.totInfPicnicEstandar}</td>
+                  <td>{stats.totInfPicnicEspecial}</td>
                   <td>{stats.totInfTickets}</td>
                   <td style={{ fontWeight: 'bold' }}>{stats.totInf}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 'bold' }}>PRIMARIA</td>
-                  <td>{stats.totPriComedor}</td>
-                  <td>{stats.totPriPicnic}</td>
+                  <td>{stats.totPriComedorEstandar}</td>
+                  <td>{stats.totPriComedorEspecial}</td>
+                  <td>{stats.totPriPicnicEstandar}</td>
+                  <td>{stats.totPriPicnicEspecial}</td>
                   <td>{stats.totPriTickets}</td>
                   <td style={{ fontWeight: 'bold' }}>{stats.totPri}</td>
                 </tr>
                 <tr style={{ fontWeight: 'bold', backgroundColor: '#f1f5f9' }}>
                   <td>TOTAL ACUMULADO</td>
-                  <td>{stats.totComedor}</td>
-                  <td>{stats.totPicnics}</td>
+                  <td>{stats.totComedorEstandar}</td>
+                  <td>{stats.totComedorEspecial}</td>
+                  <td>{stats.totPicnicsEstandar}</td>
+                  <td>{stats.totPicnicsEspecial}</td>
                   <td>{stats.totTickets}</td>
                   <td style={{ fontSize: '14pt', border: '2px solid black' }}>{stats.total} Platos</td>
                 </tr>
@@ -2798,27 +2912,50 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
         <>
           {/* Tarjetas KPI de resumen rápido */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-blue-500 relative overflow-hidden interactive-card text-left">
-              <div className="text-[10px] font-extrabold text-blue-550 tracking-wider uppercase">Comedor (Menú)</div>
-              <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totComedor}</div>
+            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-blue-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-blue-550 tracking-wider uppercase">Comedor (Menú)</div>
+                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totComedor}</div>
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
+                <span>Estándar: <strong className="text-slate-700 dark:text-slate-200">{stats.totComedorEstandar}</strong></span>
+                <span>Especiales: <strong className="text-emerald-600 dark:text-emerald-450">{stats.totComedorEspecial}</strong></span>
+              </div>
               <UtensilsCrossed className="absolute -right-4 -bottom-4 w-14 h-14 text-blue-500/10 dark:text-blue-400/5 rotate-12" />
             </div>
             
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-purple-500 relative overflow-hidden interactive-card text-left">
-              <div className="text-[10px] font-extrabold text-purple-605 tracking-wider uppercase">Picnics (Excursión)</div>
-              <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totPicnics}</div>
+            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-purple-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-purple-605 tracking-wider uppercase">Picnics (Excursión)</div>
+                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totPicnics}</div>
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
+                <span>Estándar: <strong className="text-slate-700 dark:text-slate-200">{stats.totPicnicsEstandar}</strong></span>
+                <span>Especiales: <strong className="text-purple-600 dark:text-purple-450">{stats.totPicnicsEspecial}</strong></span>
+              </div>
               <Backpack className="absolute -right-4 -bottom-4 w-14 h-14 text-purple-500/10 dark:text-purple-400/5 rotate-12" />
             </div>
             
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-emerald-500 relative overflow-hidden interactive-card text-left">
-              <div className="text-[10px] font-extrabold text-emerald-600 tracking-wider uppercase">Total General</div>
-              <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.total}</div>
+            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-emerald-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-emerald-600 tracking-wider uppercase">Total General</div>
+                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.total}</div>
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
+                <span>Estándar: <strong className="text-slate-700 dark:text-slate-200">{stats.totComedorEstandar + stats.totPicnicsEstandar}</strong></span>
+                <span>Especiales: <strong className="text-emerald-600 dark:text-emerald-450">{stats.totComedorEspecial + stats.totPicnicsEspecial}</strong></span>
+              </div>
               <Users className="absolute -right-4 -bottom-4 w-14 h-14 text-emerald-500/10 dark:text-emerald-400/5 rotate-12" />
             </div>
             
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-amber-500 relative overflow-hidden interactive-card text-left">
-              <div className="text-[10px] font-extrabold text-amber-500 tracking-wider uppercase">Tickets Sueltos</div>
-              <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totTickets}</div>
+            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-amber-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-amber-500 tracking-wider uppercase">Tickets Sueltos</div>
+                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totTickets}</div>
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
+                <span>Tickets: <strong className="text-slate-700 dark:text-slate-200">{stats.totTickets}</strong></span>
+              </div>
               <Ticket className="absolute -right-4 -bottom-4 w-14 h-14 text-amber-500/10 dark:text-amber-400/5 rotate-12" />
             </div>
           </div>
@@ -2857,10 +2994,16 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                 {!loading && (
                   <div className="flex flex-wrap gap-2 text-[10.5px]">
                     <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-pink-755 dark:text-pink-300 flex items-center gap-1">
-                      🍽️ Menú: <strong className="font-bold text-pink-900 dark:text-white">{stats.totInfComedor}</strong>
+                      🍽️ Menú Estándar: <strong className="font-bold text-pink-900 dark:text-white">{stats.totInfComedorEstandar}</strong>
+                    </span>
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-pink-755 dark:text-pink-300 flex items-center gap-1">
+                      🥗 Menú Especial: <strong className="font-bold text-pink-900 dark:text-white">{stats.totInfComedorEspecial}</strong>
                     </span>
                     <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
-                      🎒 Picnic: <strong className="font-bold text-purple-900 dark:text-white">{stats.totInfPicnic}</strong>
+                      🎒 Picnic Estándar: <strong className="font-bold text-purple-900 dark:text-white">{stats.totInfPicnicEstandar}</strong>
+                    </span>
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
+                      🎒 Picnic Especial: <strong className="font-bold text-purple-900 dark:text-white">{stats.totInfPicnicEspecial}</strong>
                     </span>
                     <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-amber-755 dark:text-amber-300 flex items-center gap-1">
                       🎫 Tickets: <strong className="font-bold text-amber-900 dark:text-white">{stats.totInfTickets}</strong>
@@ -2896,10 +3039,16 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
                 {!loading && (
                   <div className="flex flex-wrap gap-2 text-[10.5px]">
                     <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-blue-755 dark:text-blue-300 flex items-center gap-1">
-                      🍽️ Menú: <strong className="font-bold text-blue-900 dark:text-white">{stats.totPriComedor}</strong>
+                      🍽️ Menú Estándar: <strong className="font-bold text-blue-900 dark:text-white">{stats.totPriComedorEstandar}</strong>
+                    </span>
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-blue-755 dark:text-blue-300 flex items-center gap-1">
+                      🥗 Menú Especial: <strong className="font-bold text-blue-900 dark:text-white">{stats.totPriComedorEspecial}</strong>
                     </span>
                     <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
-                      🎒 Picnic: <strong className="font-bold text-purple-900 dark:text-white">{stats.totPriPicnic}</strong>
+                      🎒 Picnic Estándar: <strong className="font-bold text-purple-900 dark:text-white">{stats.totPriPicnicEstandar}</strong>
+                    </span>
+                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
+                      🎒 Picnic Especial: <strong className="font-bold text-purple-900 dark:text-white">{stats.totPriPicnicEspecial}</strong>
                     </span>
                     <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-amber-755 dark:text-amber-300 flex items-center gap-1">
                       🎫 Tickets: <strong className="font-bold text-amber-900 dark:text-white">{stats.totPriTickets}</strong>
