@@ -163,10 +163,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (!parsed.actividades) {
-          parsed.actividades = DEFAULT_SETTINGS.actividades;
-        }
-        return parsed;
+        return { ...DEFAULT_SETTINGS, ...parsed };
       } catch (e) {
         return DEFAULT_SETTINGS;
       }
@@ -181,8 +178,9 @@ export default function App() {
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setAppSettings(data);
-        localStorage.setItem("comedor_settings", JSON.stringify(data));
+        const merged = { ...DEFAULT_SETTINGS, ...data };
+        setAppSettings(merged);
+        localStorage.setItem("comedor_settings", JSON.stringify(merged));
       }
     }, (err) => {
       console.error("Error al cargar configuración desde Firestore:", err);
