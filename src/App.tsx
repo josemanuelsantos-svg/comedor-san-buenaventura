@@ -402,8 +402,8 @@ export default function App() {
   
   if (!user) return (
     <div className="p-10 text-center text-slate-500 h-screen flex flex-col items-center justify-center gap-6 bg-slate-50 dark:bg-slate-900">
-      <div className="relative flex items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-950 shadow-lg border border-slate-100 dark:border-slate-800 transition-all hover:scale-105">
-        <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-20 h-20 animate-bounce" />
+      <div className="relative p-4 rounded-3xl bg-white dark:bg-slate-950 shadow-xl border border-slate-100 dark:border-slate-800 flex items-center justify-center animate-bounce">
+        <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-20 h-20 object-contain aspect-square shrink-0" />
         <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-green-500 rounded-full animate-ping"></div>
       </div>
       <p className="font-semibold text-lg text-slate-700 dark:text-slate-300 animate-pulse">Iniciando Comedor SB...</p>
