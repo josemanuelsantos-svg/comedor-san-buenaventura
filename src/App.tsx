@@ -2900,7 +2900,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
              </div>
            )}
          </div>
-      </div>
+      )}
 
       {activeTab === "monthly" ? (
         <>
