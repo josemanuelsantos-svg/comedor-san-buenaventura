@@ -1410,13 +1410,14 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
     setManualEspeciales(manualEsps);
     setAttendance(prev => {
       const syncAtt = { ...prev };
-      Object.keys(syncAtt).forEach(id => {
-        const found = (yaRegistrado.especiales || []).find(e => e.rosterId === id);
-        if (found) {
-          syncAtt[id].option = found.option || (yaRegistrado.esExcursion ? "picnic" : "comedor");
-        } else {
-          syncAtt[id].option = "falta";
-        }
+      (rosterAlumnos || []).forEach(s => {
+        const found = (yaRegistrado.especiales || []).find(e => e.rosterId === s.id);
+        syncAtt[s.id] = {
+          nombre: s.nombre,
+          nota: s.nota,
+          dietaBlanda: s.dietaBlanda,
+          option: found ? (found.option || (yaRegistrado.esExcursion ? "picnic" : "comedor")) : "falta"
+        };
       });
       return syncAtt;
     });
@@ -1435,6 +1436,15 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
   };
 
   const currentTotal = (Number(formData.fijos) || 0) + (Number(formData.tickets) || 0);
+
+  const especialesCount = useMemo(() => {
+    const rosterCount = (rosterAlumnos || []).filter(s => {
+      const att = attendance[s.id];
+      if (!att) return s.tipoHabitual === "fijo";
+      return att.option !== "falta" && att.asiste !== false;
+    }).length;
+    return rosterCount + (manualEspeciales || []).length;
+  }, [rosterAlumnos, attendance, manualEspeciales]);
 
   const [yaRegistrado, setYaRegistrado] = useState(null);
 
