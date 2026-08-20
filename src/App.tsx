@@ -670,6 +670,8 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
   // Roster de Alumnos de esta clase (Mejora 1)
   const [rosterAlumnos, setRosterAlumnos] = useState([]);
   const [attendance, setAttendance] = useState({}); // { [studentId]: { nombre, nota, dietaBlanda, asiste: true } }
+  const [expandedStudentOptions, setExpandedStudentOptions] = useState({});
+  const toggleExpandOptions = (id) => setExpandedStudentOptions(prev => ({ ...prev, [id]: !prev[id] }));
   
   const [manualEspeciales, setManualEspeciales] = useState([]); // Dietas introducidas de forma puntual hoy
   const [nuevoEspecial, setNuevoEspecial] = useState({ nombre: "", dietaBlanda: false, nota: "", alergias: [] });
@@ -1631,78 +1633,144 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
                     <Salad className="w-5 h-5 text-emerald-600 dark:text-emerald-505"/> Dietas Especiales y Alergias
                   </h3>
                   
-                  {/* Listado Roster Estable de esta clase */}
+                  {/* Listado Roster Estable de esta clase (Mobile-First Ergonomía) */}
                   {rosterAlumnos.length > 0 && (
-                    <div className="space-y-2.5">
-                      <span className="block text-[11px] font-bold text-slate-400 dark:text-slate-505 uppercase tracking-wider">Alumnos estables con dietas</span>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          Alumnos registrados con dietas / alergias
+                        </span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold px-2 py-0.5 rounded-full">
+                          {rosterAlumnos.length} {rosterAlumnos.length === 1 ? "alumno" : "alumnos"}
+                        </span>
+                      </div>
+
                       {rosterAlumnos.map(student => {
                         const att = attendance[student.id] || {};
                         const currentOption = att.option || (att.asiste !== undefined ? (att.asiste ? (esExcursion ? "picnic" : "comedor") : "falta") : (student.tipoHabitual === "fijo" ? (esExcursion ? "picnic" : "comedor") : "falta"));
+                        const isAttending = currentOption === "comedor" || currentOption === "ticket" || currentOption === "picnic";
+                        const isAbsent = currentOption === "falta";
+                        const isExpanded = !!expandedStudentOptions[student.id];
+
+                        const noteLower = (student.nota || "").toLowerCase();
+                        const isCritical = noteLower.includes("adrenalina") || 
+                                           noteLower.includes("grave") || 
+                                           noteLower.includes("estilsona") ||
+                                           noteLower.includes("altellus") ||
+                                           noteLower.includes("jext") ||
+                                           noteLower.includes("anapen");
+
                         return (
                           <div 
                             key={student.id} 
-                            className={`flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-xl border transition-all gap-2.5 ${
-                              currentOption !== "falta" 
-                                ? "bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/50" 
-                                : "bg-slate-50/50 dark:bg-slate-855/40 border-slate-200 dark:border-slate-800 opacity-60"
+                            className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all duration-200 shadow-sm ${
+                              isCritical 
+                                ? "bg-red-50/50 dark:bg-red-950/20 border-red-300 dark:border-red-800/70" 
+                                : isAttending
+                                  ? "bg-emerald-50/40 dark:bg-emerald-950/15 border-emerald-300 dark:border-emerald-800/60"
+                                  : "bg-slate-50/60 dark:bg-slate-850/40 border-slate-200 dark:border-slate-800 opacity-75"
                             }`}
                           >
-                            <div>
-                              <div className="font-bold text-sm text-slate-800 dark:text-slate-250 flex items-center gap-2 flex-wrap">
-                                <span>{student.nombre}</span>
-                                {student.dietaBlanda && <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-850 dark:text-emerald-300 px-1.5 py-0.2 rounded text-[9px] uppercase font-bold tracking-wide">Dieta Blanda</span>}
-                                {student.tipoHabitual === "no_comedor" && <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-405 px-1.5 py-0.2 rounded text-[9px] uppercase font-bold tracking-wide">No Comedor</span>}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-black text-sm sm:text-base text-slate-800 dark:text-slate-100">
+                                    {student.nombre}
+                                  </span>
+                                  {isCritical && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-black bg-red-500 text-white animate-pulse shadow-sm">
+                                      <AlertTriangle className="w-3 h-3" /> ALERTA GRAVE
+                                    </span>
+                                  )}
+                                  {student.dietaBlanda && (
+                                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                                      Dieta Blanda
+                                    </span>
+                                  )}
+                                  {student.tipoHabitual === "no_comedor" && (
+                                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-semibold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                      No Habitual
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1 flex items-start gap-1.5">
+                                  <Salad className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                  <span>{student.nota || "Dieta Especial asignada"}</span>
+                                </div>
                               </div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{student.nota}</div>
+
+                              {/* Botón para expandir Ticket / Picnic si se requiere */}
+                              <button
+                                type="button"
+                                onClick={() => toggleExpandOptions(student.id)}
+                                className={`p-1.5 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                                  isExpanded || currentOption === "ticket" || currentOption === "picnic"
+                                    ? "bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                }`}
+                                title="Opciones avanzadas (Ticket o Picnic)"
+                              >
+                                {currentOption === "ticket" ? "🏷️ Ticket" : currentOption === "picnic" ? "🎒 Picnic" : "⚙️ Más"}
+                              </button>
                             </div>
-                            
-                            {/* Selector de Opción de Asistencia (Comedor, Ticket, Picnic, Falta) */}
-                            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 w-fit">
-                              <button 
+
+                            {/* Selector Principal Binario Táctil (Objetivo de toque: 48px de altura) */}
+                            <div className="grid grid-cols-2 gap-2 mt-2.5">
+                              <button
                                 type="button"
-                                onClick={() => updateStudentAttendanceOption(student.id, "comedor")}
-                                className={`px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
-                                  currentOption === "comedor" 
-                                    ? "bg-emerald-600 text-white shadow-sm font-black" 
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                                onClick={() => updateStudentAttendanceOption(student.id, esExcursion ? "picnic" : "comedor")}
+                                className={`h-12 py-2.5 px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 select-none ${
+                                  isAttending
+                                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-500/20"
+                                    : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
                                 }`}
                               >
-                                Comedor
+                                <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+                                <span>COME HOY</span>
                               </button>
-                              <button 
-                                type="button"
-                                onClick={() => updateStudentAttendanceOption(student.id, "ticket")}
-                                className={`px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
-                                  currentOption === "ticket" 
-                                    ? "bg-amber-500 text-white shadow-sm font-black" 
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
-                                }`}
-                              >
-                                Ticket
-                              </button>
-                              <button 
-                                type="button"
-                                onClick={() => updateStudentAttendanceOption(student.id, "picnic")}
-                                className={`px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
-                                  currentOption === "picnic" 
-                                    ? "bg-purple-600 text-white shadow-sm font-black" 
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
-                                }`}
-                              >
-                                Picnic
-                              </button>
-                              <button 
+
+                              <button
                                 type="button"
                                 onClick={() => updateStudentAttendanceOption(student.id, "falta")}
-                                className={`px-2.5 py-1 text-[10.5px] font-bold rounded transition-all ${
-                                  currentOption === "falta" 
-                                    ? "bg-red-500 text-white shadow-sm font-black" 
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                                className={`h-12 py-2.5 px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 select-none ${
+                                  isAbsent
+                                    ? "bg-red-500 text-white shadow-md shadow-red-500/30 ring-2 ring-red-500/20"
+                                    : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
                                 }`}
                               >
-                                Falta
+                                <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+                                <span>FALTA</span>
                               </button>
                             </div>
+
+                            {/* Opciones secundarias expandibles (Ticket / Picnic) */}
+                            {isExpanded && (
+                              <div className="mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex gap-2 justify-end animate-slide-up">
+                                <span className="text-[10px] font-bold text-slate-400 self-center uppercase mr-auto">Tipo de servicio:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateStudentAttendanceOption(student.id, "ticket")}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    currentOption === "ticket"
+                                      ? "bg-amber-500 text-white shadow-sm font-black"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  🏷️ Ticket Suelto
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateStudentAttendanceOption(student.id, "picnic")}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    currentOption === "picnic"
+                                      ? "bg-purple-600 text-white shadow-sm font-black"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  🎒 Bolsa Picnic
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1909,7 +1977,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
                   )}
                 </div>
 
-                <div className="pt-5 border-t border-slate-100 dark:border-slate-800">
+                <div className="pt-5 pb-16 sm:pb-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex justify-between items-center mb-4 px-2">
                     <span className="font-bold text-slate-500 dark:text-slate-400 text-sm">{esExcursion ? "Total picnics solicitados:" : "Platos de asistencia total:"}</span>
                     <span className="text-3xl font-black text-slate-800 dark:text-slate-105">{currentTotal}</span>
@@ -1923,6 +1991,40 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdm
                     {sending ? <RefreshCw className="animate-spin w-5 h-5"/> : <CheckCircle className="w-5 h-5"/>}
                     {sending ? "Guardando Registro..." : (isEditing ? "Confirmar Modificaciones" : (esExcursion ? "Solicitar Picnics a Cocina" : "Enviar Asistencia a Cocina"))}
                   </button>
+                </div>
+
+                {/* Barra Flotante Inferior Ergonómica (Thumb-Zone Action Bar para Móvil) */}
+                <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 z-30 shadow-2xl print:hidden">
+                  <div className="max-w-xl mx-auto flex items-center gap-3">
+                    <div className="flex flex-col min-w-[85px] pl-1">
+                      <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">Total Platos</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-slate-900 dark:text-slate-100">{currentTotal}</span>
+                        {especialesCount > 0 && (
+                          <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">({especialesCount} esp)</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={sending}
+                      onClick={handleSubmit}
+                      className="flex-1 h-13 py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    >
+                      {sending ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Guardando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          <span>{isEditing ? "CONFIRMAR MODIFICACIONES" : (esExcursion ? "SOLICITAR PICNICS" : (currentTotal > 0 && !hasLastSub ? "ENVIAR A COCINA" : "⚡ CONFIRMAR ASISTENCIA"))}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -2662,6 +2764,32 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
   const ausentesInfantil = useMemo(() => ausentes.filter(s => s.etapa === "Infantil"), [ausentes]);
   const ausentesPrimaria = useMemo(() => ausentes.filter(s => s.etapa === "Primaria"), [ausentes]);
 
+  // Consolidación de Dietas Especiales por Categoría para Cocina
+  const consolidatedDietGroups = useMemo(() => {
+    const groups = {};
+    const normalizeDietCategory = (nota, dietaBlanda) => {
+      if (dietaBlanda) return "Dieta Blanda";
+      const n = (nota || "").toLowerCase();
+      if (n.includes("gluten") || n.includes("celiac")) return "Celiaquía (Sin Gluten)";
+      if (n.includes("huevo")) return "Alergia al Huevo";
+      if (n.includes("lactosa") || n.includes("leche") || n.includes("plv") || n.includes("aplv")) return "Intolerancia / Alergia Lactosa";
+      if (n.includes("fruto") || n.includes("nuez") || n.includes("cacahuete") || n.includes("almendra") || n.includes("pistacho") || n.includes("anacardo")) return "Frutos Secos / Cacahuete";
+      if (n.includes("legumbre") || n.includes("lenteja") || n.includes("guisante") || n.includes("alubia")) return "Legumbres";
+      if (n.includes("marisco") || n.includes("pescado") || n.includes("mejillón")) return "Pescado / Marisco";
+      if (n.includes("cerdo")) return "Sin Cerdo (Religiosa / Cultural)";
+      if (n.includes("melocotón") || n.includes("plátano") || n.includes("naranja") || n.includes("kiwi") || n.includes("fruta")) return "Frutas / Verduras";
+      return "Otras Dietas Especiales";
+    };
+
+    presentes.forEach(p => {
+      const cat = normalizeDietCategory(p.nota, p.dietaBlanda);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    });
+
+    return groups;
+  }, [presentes]);
+
   return (
     <div className="space-y-4 animate-fade-in print:space-y-6">
       
@@ -3069,6 +3197,45 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
               <Ticket className="absolute -right-4 -bottom-4 w-14 h-14 text-amber-500/10 dark:text-amber-400/5 rotate-12" />
             </div>
           </div>
+
+          {/* Matriz de Emplatado Rápido para Cocina (Dietas Especiales y Alérgenos Confirmados) */}
+          {Object.keys(consolidatedDietGroups).length > 0 && (
+            <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-2xl p-4 space-y-3 print:bg-white print:border-slate-400 animate-fade-in">
+              <div className="flex justify-between items-center">
+                <h4 className="font-extrabold text-xs text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                  <Salad className="w-4 h-4 text-amber-600" /> Matriz de Emplatado: Dietas Especiales Confirmadas
+                </h4>
+                <span className="text-[10px] font-black bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 px-2.5 py-0.5 rounded-full shadow-sm">
+                  {presentes.length} {presentes.length === 1 ? "ración especial" : "raciones especiales"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {Object.entries(consolidatedDietGroups).map(([dietName, pupils]) => (
+                  <div key={dietName} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-sm flex flex-col justify-between text-xs">
+                    <div>
+                      <div className="flex justify-between items-start font-bold border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-1.5">
+                        <span className="text-amber-800 dark:text-amber-400">{dietName}</span>
+                        <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-extrabold px-1.5 py-0.5 rounded">
+                          {pupils.length} {pupils.length === 1 ? "ración" : "raciones"}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {pupils.map((p, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-[11px] text-slate-600 dark:text-slate-400">
+                            <span className="font-medium truncate mr-2">• {p.nombre}</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0 text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                              {p.clase} ({p.etapa})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           {/* Botonera de Acciones (CSV, Impresión) */}
           <div className="flex flex-col sm:flex-row gap-2 print:hidden">
