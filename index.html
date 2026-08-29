@@ -1428,29 +1428,29 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
     }
     
     try {
-      // Registrar datos del aula en Firestore
+      // Registrar datos del aula en Firestore (sin valores undefined)
       const documentData = {
         fecha: targetDate, 
         timestamp: Date.now(), 
-        etapa: formData.etapa, 
-        curso: formData.curso, 
-        letra: formData.letra,
+        etapa: formData.etapa || "Primaria", 
+        curso: formData.curso || "1º", 
+        letra: formData.letra || "A", 
         fijos: Number(formData.fijos) || 0, 
         tickets: Number(formData.tickets) || 0, 
         total: currentTotal,
-        ausencias: ausenciasTextoCompleto,
-        profesorNombre: formData.profesorSeQueda ? formData.profesorNombre.trim() : "",
+        ausencias: ausenciasTextoCompleto || "",
+        profesorNombre: formData.profesorSeQueda ? (formData.profesorNombre || "").trim() : "",
         especiales: especialesFinal, 
         especialesPresentes: rosterPresentes,
         especialesAusentes: rosterAbsentes.map(nombre => ({ nombre, nota: "Ausente", option: "falta" })),
-        autorUid: user.uid,
-        autorNombre: user.displayName || user.email || "Docente",
+        autorUid: (user && user.uid) ? user.uid : "profesor_aula",
+        autorNombre: (user && (user.displayName || user.email)) ? (user.displayName || user.email) : "Docente",
         totalPlatos: currentTotal,
         modalidad: esExcursion ? "picnic" : "comedor",
-        fechaExcursion: esExcursion ? fechaExcursion : undefined,
+        fechaExcursion: (esExcursion && fechaExcursion) ? fechaExcursion : "",
         estado: isEditing ? "corregido" : "enviado",
-        registradoPor: user.uid,
-        esExcursion: esExcursion || false
+        registradoPor: (user && user.uid) ? user.uid : "profesor_aula",
+        esExcursion: Boolean(esExcursion)
       };
       
       (appSettings.actividades || []).forEach(act => {
@@ -1459,23 +1459,27 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
 
       await setDoc(doc(db, "registros_diarios", docId), documentData);
       
-      // Registrar evento en auditoría
-      await logAuditEvent({
-        userId: user.uid,
-        userName: user.displayName || user.email,
-        userRole: user.rol || "teacher",
-        action: isEditing ? "UPDATE_RECORD" : "CREATE_RECORD",
-        targetType: "registro",
-        targetId: docId,
-        details: {
-          fecha: targetDate,
-          etapa: formData.etapa,
-          curso: formData.curso,
-          letra: formData.letra,
-          total: currentTotal,
-          modalidad: esExcursion ? "picnic" : "comedor"
-        }
-      });
+      // Registrar evento en auditoría de forma segura
+      try {
+        await logAuditEvent({
+          userId: (user && user.uid) ? user.uid : "profesor_aula",
+          userName: (user && (user.displayName || user.email)) ? (user.displayName || user.email) : "Docente",
+          userRole: (user && user.rol) ? user.rol : "teacher",
+          action: isEditing ? "UPDATE_RECORD" : "CREATE_RECORD",
+          targetType: "registro",
+          targetId: docId,
+          details: {
+            fecha: targetDate,
+            etapa: formData.etapa,
+            curso: formData.curso,
+            letra: formData.letra,
+            total: currentTotal,
+            modalidad: esExcursion ? "picnic" : "comedor"
+          }
+        });
+      } catch (auditErr) {
+        console.warn("Audit non-critical error:", auditErr);
+      }
       
       // 3. Guardar copia local de este envío para el botón "Cargar datos de ayer" (Productividad Profesor 2)
       if (lastSubKey) {
