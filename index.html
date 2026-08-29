@@ -16,6 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Comedor SB">
+  <link rel="icon" type="image/png" href="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png">
+  <link rel="shortcut icon" type="image/png" href="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png">
   <link rel="apple-touch-icon" href="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png">
 
   <!-- Tailwind CSS v3 Play CDN -->
@@ -53,10 +55,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-  <!-- React & ReactDOM (versiones estables de producción) -->
-  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
 
   <!-- Babel Standalone para transpilar JSX en tiempo de ejecución -->
   <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
@@ -334,38 +332,6 @@ input[type="range"]::-webkit-slider-thumb:active {
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-105 min-h-screen transition-colors duration-300">
   
-  <!-- Banner de Captura de Errores -->
-  <div id="error-banner" style="display:none; background:#fee2e2; border:2px solid #ef4444; color:#991b1b; padding:20px; margin:20px; font-family:monospace; border-radius:10px; white-space:pre-wrap; z-index:9999; position:relative;">
-    <h2 style="margin:0 0 10px 0;">⚠️ Error de Carga / Ejecución (Babel o React)</h2>
-    <div id="error-message"></div>
-  </div>
-  <script>
-    window.addEventListener('error', function(e) {
-      document.getElementById('error-banner').style.display = 'block';
-      document.getElementById('error-message').innerText += '\n' + e.message + (e.filename ? ' en ' + e.filename : '') + (e.lineno ? ':' + e.lineno : '');
-    });
-    window.addEventListener('unhandledrejection', function(e) {
-      document.getElementById('error-banner').style.display = 'block';
-      document.getElementById('error-message').innerText += '\nPromesa rechazada: ' + e.reason;
-    });
-    
-    // Interceptar console.error para mostrar fallos de compilación de Babel
-    const origConsoleError = console.error;
-    console.error = function() {
-      origConsoleError.apply(console, arguments);
-      const msg = Array.from(arguments).map(arg => {
-        if (arg instanceof Error) return arg.message + '\n' + arg.stack;
-        if (typeof arg === 'object') return JSON.stringify(arg);
-        return String(arg);
-      }).join(' ');
-      
-      if (msg.includes('Babel') || msg.includes('React') || msg.includes('syntax') || msg.includes('failed') || msg.includes('Error') || msg.includes('Unexpected')) {
-        document.getElementById('error-banner').style.display = 'block';
-        document.getElementById('error-message').innerText += '\n' + msg;
-      }
-    };
-  </script>
-
   <!-- Contenedor Raíz de React -->
   <div id="app-root"></div>
 
@@ -3106,6 +3072,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             option: e.option || (r.esExcursion ? "picnic" : "comedor"),
             esManual: true
           });
+        }
       });
     });
 

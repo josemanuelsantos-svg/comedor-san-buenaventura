@@ -2725,6 +2725,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             option: e.option || (r.esExcursion ? "picnic" : "comedor"),
             esManual: true
           });
+        }
       });
     });
 
