@@ -238,6 +238,7 @@ export default function App() {
   const [registros, setRegistros] = useState([]);
   const [selectedDate, setSelectedDate] = useState(getLocalISODate());
   const [loadingData, setLoadingData] = useState(false);
+  const [dataError, setDataError] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
