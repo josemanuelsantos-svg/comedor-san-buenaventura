@@ -218,21 +218,20 @@ const logAuditEvent = async (params) => {
 
 // Componente principal de la App
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [view, setView] = useState("teacher"); // "teacher" | "admin" | "audit" | "settings"
+  const [currentUser, setCurrentUser] = useState({
+    uid: "profesor_aula",
+    displayName: "Profesor/a",
+    rol: "admin",
+    gruposAsignados: []
+  });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [view, setView] = useState("teacher"); // "teacher" | "admin" | "settings"
   const [registros, setRegistros] = useState([]);
   const [selectedDate, setSelectedDate] = useState(getLocalISODate());
   const [loadingData, setLoadingData] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  // Login Form States
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginTab, setLoginTab] = useState("quick");
-  const [loginLoading, setLoginLoading] = useState(false);
-
   // Toasts Notificaciones
   const [toasts, setToasts] = useState([]);
 
@@ -293,58 +292,25 @@ export default function App() {
     };
   }, []);
 
-  // Obtener perfil de usuario desde Firestore
-  const fetchUserProfile = async (firebaseUser) => {
-    try {
-      const docRef = doc(db, "usuarios", firebaseUser.uid);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        return { uid: firebaseUser.uid, ...snap.data() };
-      }
-      const defaultUser = DEFAULT_DEMO_USERS[firebaseUser.email?.toLowerCase() || ""];
-      const newProfile = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email || "",
-        displayName: firebaseUser.displayName || defaultUser?.displayName || firebaseUser.email?.split("@")[0] || "Docente",
-        rol: defaultUser?.rol || (firebaseUser.email?.includes("cocina") ? "kitchen" : firebaseUser.email?.includes("admin") ? "admin" : "teacher"),
-        gruposAsignados: defaultUser?.gruposAsignados || [
-          "Infantil_1º_A", "Infantil_1º_B", "Infantil_2º_A", "Infantil_2º_B", "Infantil_3º_A", "Infantil_3º_B", "Infantil_3º_C",
-          "Primaria_1º_A", "Primaria_1º_B", "Primaria_1º_C", "Primaria_2º_A", "Primaria_2º_B", "Primaria_2º_C",
-          "Primaria_3º_A", "Primaria_3º_B", "Primaria_3º_C", "Primaria_4º_A", "Primaria_4º_B", "Primaria_4º_C",
-          "Primaria_5º_A", "Primaria_5º_B", "Primaria_5º_C", "Primaria_6º_A", "Primaria_6º_B", "Primaria_6º_C"
-        ],
-        esProfesorGlobal: defaultUser?.rol === "admin" || defaultUser?.rol === "kitchen",
-        createdAt: new Date().toISOString()
-      };
-      await setDoc(docRef, newProfile);
-      return newProfile;
-    } catch (e) {
-      console.warn("Error fetching user profile:", e);
-      return {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email || "profesor@sanbuenaventura.es",
-        displayName: firebaseUser.displayName || "Profesor/a",
-        rol: "teacher",
-        gruposAsignados: []
-      };
-    }
-  };
-
-  // Escuchar estado de autenticación
+  // Autenticación fluida y transparente en segundo plano
   useEffect(() => {
     let mounted = true;
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      if (mounted) {
-        if (u) {
-          const profile = await fetchUserProfile(u);
-          setCurrentUser(profile);
-          if (profile.rol === "kitchen") {
-            setView("admin");
-          }
-        } else {
-          setCurrentUser(null);
-        }
-        setAuthLoading(false);
+    const initAuth = async () => {
+      try {
+        await signInAnonymously(auth);
+      } catch (err) {
+        console.warn("Background Firebase auth:", err);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (mounted && u) {
+        setCurrentUser({
+          uid: u.uid,
+          displayName: "Profesor/a",
+          rol: "admin",
+          gruposAsignados: []
+        });
       }
     });
     return () => { mounted = false; unsubscribe(); };
@@ -352,7 +318,6 @@ export default function App() {
 
   // Sincronizar configuraciones generales desde Firestore
   useEffect(() => {
-    if (!currentUser) return;
     const docRef = doc(db, "configuracion", "general");
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -365,11 +330,10 @@ export default function App() {
       console.error("Error al cargar configuración desde Firestore:", err);
     });
     return () => unsubscribe();
-  }, [currentUser, db]);
+  }, [db]);
 
   // Escuchar Firestore en tiempo real para la fecha seleccionada
   useEffect(() => {
-    if (!currentUser) return;
     setLoadingData(true);
     setRegistros([]);
     const targetDate = view === "teacher" ? getLocalISODate() : selectedDate; 
@@ -389,118 +353,7 @@ export default function App() {
       showToast("Error al sincronizar con el servidor.", "error");
     });
     return () => unsubscribe();
-  }, [currentUser, selectedDate, view]);
-
-  // Login Handlers
-  const handleGoogleLogin = async () => {
-    setLoginLoading(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(auth, provider);
-      const profile = await fetchUserProfile(cred.user);
-      setCurrentUser(profile);
-      showToast(`¡Bienvenido/a, ${profile.displayName}!`, "success");
-      await logAuditEvent({
-        userId: profile.uid,
-        userName: profile.displayName,
-        userRole: profile.rol,
-        action: "LOGIN",
-        targetType: "usuario",
-        targetId: profile.uid,
-        details: { method: "Google_Workspace" }
-      });
-    } catch (err) {
-      console.error(err);
-      showToast("Error al iniciar sesión con Google.", "error");
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleEmailLogin = async (e) => {
-    if (e) e.preventDefault();
-    if (!loginEmail || !loginPassword) {
-      showToast("Introduce correo y contraseña.", "warning");
-      return;
-    }
-    setLoginLoading(true);
-    try {
-      let cred;
-      try {
-        cred = await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
-      } catch (err) {
-        if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
-          cred = await createUserWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
-        } else {
-          throw err;
-        }
-      }
-      const profile = await fetchUserProfile(cred.user);
-      setCurrentUser(profile);
-      showToast(`¡Bienvenido/a, ${profile.displayName}!`, "success");
-      await logAuditEvent({
-        userId: profile.uid,
-        userName: profile.displayName,
-        userRole: profile.rol,
-        action: "LOGIN",
-        targetType: "usuario",
-        targetId: profile.uid,
-        details: { method: "Email" }
-      });
-    } catch (err) {
-      console.error(err);
-      showToast("Error de autenticación. Verifica tus datos.", "error");
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleQuickLogin = async (emailKey) => {
-    setLoginLoading(true);
-    try {
-      let cred;
-      try {
-        cred = await signInWithEmailAndPassword(auth, emailKey, "ComedorSB2026!");
-      } catch (err) {
-        cred = await createUserWithEmailAndPassword(auth, emailKey, "ComedorSB2026!");
-      }
-      const profile = await fetchUserProfile(cred.user);
-      setCurrentUser(profile);
-      showToast(`Accediendo como ${profile.displayName}...`, "success");
-      await logAuditEvent({
-        userId: profile.uid,
-        userName: profile.displayName,
-        userRole: profile.rol,
-        action: "LOGIN",
-        targetType: "usuario",
-        targetId: profile.uid,
-        details: { method: "Quick_Login" }
-      });
-    } catch (err) {
-      console.error(err);
-      showToast("Error al iniciar sesión rápida.", "error");
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    if (currentUser) {
-      await logAuditEvent({
-        userId: currentUser.uid,
-        userName: currentUser.displayName,
-        userRole: currentUser.rol,
-        action: "LOGOUT",
-        targetType: "usuario",
-        targetId: currentUser.uid,
-        details: {}
-      });
-    }
-    await signOut(auth);
-    setCurrentUser(null);
-    setView("teacher");
-    showToast("Sesión cerrada con éxito.", "info");
-  };
+  }, [selectedDate, view]);
 
   const saveSettings = async (newSettings) => {
     setAppSettings(newSettings);
@@ -514,155 +367,29 @@ export default function App() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="p-10 text-center text-slate-500 h-screen flex flex-col items-center justify-center gap-6 bg-slate-50 dark:bg-slate-900">
-        <div className="relative p-4 rounded-3xl bg-white dark:bg-slate-950 shadow-xl border border-slate-100 dark:border-slate-800 flex items-center justify-center animate-bounce">
-          <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-20 h-20 object-contain aspect-square shrink-0" />
-          <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-green-500 rounded-full animate-ping"></div>
-        </div>
-        <p className="font-semibold text-lg text-slate-700 dark:text-slate-300 animate-pulse">Iniciando Comedor SB...</p>
-      </div>
-    );
-  }
-
-  // Si no está autenticado, renderizar Login Seguro (Cero datos expuestos)
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 font-sans">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-scale-up">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center text-3xl shadow-xl shadow-blue-500/25 mx-auto mb-3">
-              🍽️
-            </div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white">
-              Comedor SB
-            </h1>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
-              Colegio San Buenaventura — Acceso Seguro de Comensales
-            </p>
-          </div>
-
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-5">
-            <button
-              type="button"
-              onClick={() => setLoginTab("quick")}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${loginTab === "quick" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm" : "text-slate-500"}`}
-            >
-              ⚡ Acceso Rápido
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginTab("email")}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${loginTab === "email" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm" : "text-slate-500"}`}
-            >
-              🔑 Correo y Clave
-            </button>
-          </div>
-
-          {loginTab === "quick" ? (
-            <div className="space-y-3">
-              <button
-                type="button"
-                disabled={loginLoading}
-                onClick={handleGoogleLogin}
-                className="w-full py-3.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold rounded-2xl shadow-sm transition-all flex items-center justify-center gap-3 active:scale-98 disabled:opacity-50 text-xs"
-              >
-                <span>Acceder con Google Workspace Escolar</span>
-              </button>
-
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase font-bold text-slate-400">
-                  <span className="bg-white dark:bg-slate-900 px-2">O accede desde tablet de aula</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {Object.entries(DEFAULT_DEMO_USERS).map(([emailKey, u]) => (
-                  <button
-                    key={emailKey}
-                    type="button"
-                    disabled={loginLoading}
-                    onClick={() => handleQuickLogin(emailKey)}
-                    className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50 dark:hover:bg-blue-950/30 border border-slate-200 dark:border-slate-700/80 transition-all flex items-center justify-between text-left group active:scale-98"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center font-bold text-xs text-blue-600 dark:text-blue-400">
-                        {u.rol === "admin" ? "👑" : u.rol === "kitchen" ? "👨‍🍳" : "👩‍🏫"}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600">
-                          {u.displayName}
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          {u.email}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleEmailLogin} className="space-y-3.5">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                  Correo Electrónico
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="profesor@sanbuenaventura.es"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:border-blue-500 text-slate-800 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                  Contraseña
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:border-blue-500 text-slate-800 dark:text-slate-100"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loginLoading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
-              >
-                {loginLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                <span>Iniciar Sesión</span>
-              </button>
-            </form>
-          )}
-
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
-            <div className="flex items-center justify-center gap-1 text-[10.5px] font-semibold text-slate-400">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Protección RGPD y LOPDGDD activa</span>
-            </div>
-            <p className="text-[9.5px] text-slate-400/80 mt-0.5">
-              Los datos escolares de menores y alergias están protegidos y requieren autenticación.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen pb-24 relative print:pb-0 print:bg-white font-sans">
+      {/* Notificaciones Toast Accesibles */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4" aria-live="polite">
+        {toasts.map(toast => (
+          <div 
+            key={toast.id} 
+            className={`pointer-events-auto p-4 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-bold border transition-all animate-slide-up ${
+              toast.type === "success" 
+                ? "bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20" 
+                : toast.type === "warning"
+                ? "bg-amber-500 text-white border-amber-400 shadow-amber-500/20"
+                : toast.type === "error"
+                ? "bg-red-600 text-white border-red-500 shadow-red-500/20"
+                : "bg-slate-900 text-white border-slate-800 shadow-slate-900/20"
+            }`}
+          >
+            {toast.type === "success" ? <CheckCircle className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+            <p className="flex-1 leading-snug">{toast.message}</p>
+          </div>
+        ))}
+      </div>
+
       {/* Cabecera superior accesible */}
       <header className="bg-white/80 dark:bg-slate-950/80 border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-20 shadow-sm backdrop-blur-lg print:hidden">
         <div className="bg-slate-900 dark:bg-slate-950 text-slate-300 text-[10px] py-1 px-4 flex justify-between items-center gap-4">
@@ -672,16 +399,9 @@ export default function App() {
                Red: {isOnline ? <span className="font-bold text-green-400 font-mono">CONECTADO</span> : <span className="font-bold text-orange-400 font-mono">SIN CONEXIÓN</span>}
              </span>
           </div>
-          <div className="flex gap-3 items-center font-bold">
-            <span className="text-slate-400">
-              Usuario: <strong className="text-white">{currentUser.displayName}</strong> ({currentUser.rol})
-            </span>
-            <button 
-              onClick={handleLogout} 
-              className="text-[9.5px] font-extrabold text-red-400 hover:text-red-300 transition-colors uppercase flex items-center gap-1"
-              title="Cerrar sesión segura"
-            >
-              <Lock className="w-3 h-3" /> Salir
+          <div className="flex gap-4 items-center font-bold">
+            <button onClick={() => setShowHelp(true)} className="text-slate-300 hover:text-white transition-colors flex items-center gap-1">
+              <HelpCircle className="w-3.5 h-3.5 text-blue-400" /> Ayuda
             </button>
           </div>
         </div>
@@ -711,42 +431,75 @@ export default function App() {
               {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-500" />}
             </button>
 
-            {/* Selector de Vistas según rol */}
+            {/* Selector Directo de Vistas (1-tap, sin contraseña) */}
             <div className="flex border border-slate-200/60 dark:border-slate-800/60 p-0.5 rounded-xl bg-slate-100/50 dark:bg-slate-900/60 shadow-inner">
-              {(currentUser.rol === "teacher" || currentUser.rol === "admin") && (
-                <button 
-                  onClick={() => { setView("teacher"); }} 
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "teacher" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  <span>Profesor</span>
-                </button>
-              )}
-              {(currentUser.rol === "kitchen" || currentUser.rol === "admin") && (
-                <button 
-                  onClick={() => { 
-                    setSelectedDate(getLocalISODate());
-                    setView("admin");
-                  }} 
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "admin" ? "bg-white dark:bg-slate-800 text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-                >
-                  <ChefHat className="w-3.5 h-3.5" />
-                  <span>Cocina</span>
-                </button>
-              )}
-              {currentUser.rol === "admin" && (
-                <button 
-                  onClick={() => { setView("settings"); }} 
-                  className={`p-1.5 rounded-lg transition-all ${view === "settings" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-                  title="Ajustes y Roster"
-                >
-                  <Settings className="w-4 h-4" />
-                </button>
-              )}
+              <button 
+                onClick={() => { setView("teacher"); }} 
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "teacher" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Profesor</span>
+              </button>
+              <button 
+                onClick={() => { 
+                  setSelectedDate(getLocalISODate());
+                  setView("admin");
+                }} 
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "admin" ? "bg-white dark:bg-slate-800 text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+              >
+                <ChefHat className="w-3.5 h-3.5" />
+                <span>Cocina</span>
+              </button>
+              <button 
+                onClick={() => { setView("settings"); }} 
+                className={`p-1.5 rounded-lg transition-all ${view === "settings" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                title="Ajustes y Roster"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Modal de Ayuda */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in print:hidden">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full shadow-2xl relative border border-slate-100 dark:border-slate-700 animate-scale-up">
+            <button 
+              onClick={() => setShowHelp(false)} 
+              className="absolute top-3 right-3 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-4 h-4"/>
+            </button>
+            
+            <div className="space-y-4 text-left">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-150 dark:border-slate-700">
+                <HelpCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base">Instrucciones y Ayuda</h3>
+              </div>
+              
+              <div className="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+                <p>
+                  Bienvenido a la aplicación de gestión del <strong>Comedor San Buenaventura</strong>:
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5">
+                  <li><strong>Pasar lista rápido:</strong> Selecciona tu curso y letra, revisa comensales fijos y tickets.</li>
+                  <li><strong>Alergias y dietas:</strong> Pulsa [COME HOY] o [FALTA] en cada tarjeta de alumno.</li>
+                  <li><strong>Enviar a cocina:</strong> Pulsa el botón verde inferior. El registro se guarda en la nube al instante.</li>
+                </ul>
+              </div>
+              
+              <button 
+                onClick={() => setShowHelp(false)} 
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md text-xs transition-all"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contenido Principal */}
       <main className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none">
@@ -771,7 +524,7 @@ export default function App() {
             currentUser={currentUser}
           />
         )}
-        {view === "settings" && currentUser.rol === "admin" && (
+        {view === "settings" && (
           <SettingsView 
             settings={appSettings} 
             onSave={saveSettings} 
@@ -787,7 +540,7 @@ export default function App() {
 }
 
 // VISTA PROFESOR: Formulario paso a paso
-function TeacherView({ db, user, registrosHoy, appSettings, showToast, promptAdminAuth }) {
+function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
   // Configuración clase por defecto (Productividad Profesor 1)
   const defaultClass = useMemo(() => {
     const saved = localStorage.getItem("comedor_default_class");
