@@ -349,8 +349,9 @@ import {
   onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
-  getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, query, where, 
-  enableIndexedDbPersistence, limit, orderBy, getDocs, addDoc, serverTimestamp
+  getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+  collection, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, query, where, 
+  limit, orderBy, getDocs, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const {
@@ -377,12 +378,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Habilitar persistencia offline para que funcione en sótanos/comedores sin cobertura
-enableIndexedDbPersistence(db).catch((err) => {
-  console.warn("Persistencia offline no disponible:", err.code);
-});
+let db;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+} catch (e) {
+  db = getFirestore(app);
+}
 
 // Configuración por defecto (modificable en el panel de Settings)
 const DEFAULT_SETTINGS = {
@@ -625,11 +628,11 @@ export default function App() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      showToast("Conexión restaurada. Sincronizando datos...", "success");
+      showToast("Conexión restablecida con éxito.", "success");
     };
     const handleOffline = () => {
       setIsOnline(false);
-      showToast("Modo sin conexión activado. Los datos se guardarán localmente.", "warning");
+      showToast("Sin conexión a Internet. Modo local activo.", "warning");
     };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -641,27 +644,17 @@ export default function App() {
 
   // Autenticación fluida y transparente en segundo plano
   useEffect(() => {
-    let mounted = true;
-    const initAuth = async () => {
-      try {
-        await signInAnonymously(auth);
-      } catch (err) {
-        console.warn("Background Firebase auth:", err);
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      if (mounted && u) {
-        setCurrentUser({
-          uid: u.uid,
-          displayName: "Profesor/a",
-          rol: "admin",
-          gruposAsignados: []
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        signInAnonymously(auth).catch((err) => {
+          console.warn("Auth transparente:", err.code);
         });
       }
     });
-    return () => { mounted = false; unsubscribe(); };
-  }, []);
+    return () => unsubscribe();
+  }, [auth]);
 
   // Sincronizar configuraciones generales desde Firestore
   useEffect(() => {
@@ -679,10 +672,12 @@ export default function App() {
     return () => unsubscribe();
   }, [db]);
 
-  // Escuchar Firestore en tiempo real para la fecha seleccionada
+  // Escuchar Firestore en tiempo real para la fecha seleccionada con limpieza atómica
   useEffect(() => {
     setLoadingData(true);
-    setRegistros([]);
+    setDataError(null);
+    setRegistros([]); // Limpieza inmediata antes de consultar la nueva fecha
+    
     const targetDate = view === "teacher" ? getLocalISODate() : selectedDate; 
     
     const q = query(
@@ -694,13 +689,15 @@ export default function App() {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setRegistros(data);
       setLoadingData(false);
+      setDataError(null);
     }, (err) => {
       console.error("Data Error:", err);
       setLoadingData(false);
+      setDataError("Error al cargar los datos de Firestore. Comprueba la conexión.");
       showToast("Error al sincronizar con el servidor.", "error");
     });
     return () => unsubscribe();
-  }, [selectedDate, view]);
+  }, [selectedDate, view, db]);
 
   const saveSettings = async (newSettings) => {
     setAppSettings(newSettings);
@@ -865,6 +862,11 @@ export default function App() {
             selectedDate={selectedDate} 
             setSelectedDate={setSelectedDate} 
             loading={loadingData}
+            dataError={dataError}
+            onRetry={() => {
+              setLoadingData(true);
+              setDataError(null);
+            }}
             appSettings={appSettings}
             showToast={showToast}
             db={db}
@@ -1397,6 +1399,13 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
         tickets: Number(formData.tickets) || 0, 
         total: currentTotal,
         totalPlatos: currentTotal,
+        // Modelo canónico estructurado:
+        serviceType: esExcursion ? "picnic" : "dining",
+        absentSpecialStudents: rosterAbsentes,
+        generalObservation: observacionesTexto,
+        teacherName: formData.profesorSeQueda ? (formData.profesorNombre || "").trim() : null,
+        teacherEats: Boolean(formData.profesorSeQueda),
+        // Campos de compatibilidad operativa:
         ausencias: ausenciasTexto,
         observaciones: observacionesTexto,
         profesorNombre: formData.profesorSeQueda ? (formData.profesorNombre || "").trim() : "",
@@ -2176,12 +2185,14 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                       
                       <div className="flex gap-2 pt-2">
                         <button 
+                          type="button"
                           onClick={() => { setShowSpecialForm(false); setNuevoEspecial({ nombre: "", dietaBlanda: false, nota: "", alergias: [] }); }} 
                           className="flex-1 py-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg font-bold text-slate-555 text-xs transition-colors"
                         >
                           Cancelar
                         </button>
                         <button 
+                          type="button"
                           onClick={addManualEspecial} 
                           className="flex-1 py-2 bg-blue-650 hover:bg-blue-750 text-white rounded-lg font-bold shadow-md shadow-blue-500/10 text-xs transition-all"
                         >
@@ -2192,30 +2203,46 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                   )}
                 </div>
 
-                {/* Sección Alérgicos Ausentes */}
+                {/* SECCIÓN 1: ALÉRGICOS AUSENTES HOY */}
                 <div className="bg-orange-50/20 dark:bg-orange-950/5 p-5 rounded-2xl border border-orange-200/40 dark:border-orange-900/30 space-y-3">
-                  <h3 className="font-bold text-orange-850 dark:text-orange-405 flex items-center gap-2 text-sm uppercase tracking-wide">
-                    <UserX className="w-4 h-4 text-orange-600" /> Alérgicos Ausentes Hoy
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-orange-850 dark:text-orange-400 flex items-center gap-2 text-xs uppercase tracking-wide">
+                      <UserX className="w-4 h-4 text-orange-600" /> Alumnos Alérgicos Ausentes Hoy (No preparar ración)
+                    </h3>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-955 text-orange-700 dark:text-orange-300">
+                      {rosterAbsentes.length} ausentes
+                    </span>
+                  </div>
                   
-                  {rosterAbsentes.length > 0 && (
+                  {rosterAbsentes.length > 0 ? (
                     <div className="bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900/40 rounded-xl p-3 text-xs font-semibold text-orange-800 dark:text-orange-300 flex items-start gap-2 animate-scale-up">
-                      <AlertTriangle className="w-4 h-4 shrink-0 text-orange-550 mt-0.5" />
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-orange-500 mt-0.5" />
                       <div>
-                        <span className="block font-bold">Faltas automáticas del Roster:</span>
+                        <span className="block font-bold">Faltan hoy (no se preparará menú especial):</span>
                         <ul className="list-disc list-inside mt-1 font-medium space-y-0.5">
                           {rosterAbsentes.map((ra, idx) => <li key={idx}>{ra}</li>)}
                         </ul>
                       </div>
                     </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                      Todos los alumnos alérgicos habituales de esta clase están marcados como presentes.
+                    </div>
                   )}
-                  
+                </div>
+
+                {/* SECCIÓN 2: OBSERVACIONES GENERALES E INCIDENCIAS */}
+                <div className="bg-blue-50/20 dark:bg-blue-950/5 p-5 rounded-2xl border border-blue-200/40 dark:border-blue-900/30 space-y-2">
+                  <h3 className="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-2 text-xs uppercase tracking-wide">
+                    <Info className="w-4 h-4 text-blue-600" /> Observaciones del Día e Incidencias (Informativo)
+                  </h3>
                   <textarea 
-                    className="w-full p-3.5 rounded-xl border border-slate-250 dark:border-slate-800 text-xs focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-955/40 outline-none text-slate-700 dark:text-slate-250 bg-white dark:bg-slate-900 transition-shadow"
-                    placeholder="Escribe observaciones o faltas adicionales del día (Ej: Lucas está malo y no ha venido)..."
+                    className="w-full p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-950 outline-none text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 transition-shadow"
+                    placeholder="Escribe aquí observaciones generales para cocina (Ej: Salen 15 minutos antes por actividad escolar, recogida en comedor...)"
                     rows={2}
                     value={manualAusencias}
                     onChange={(e) => setManualAusencias(e.target.value)}
+                    aria-label="Observaciones generales para cocina"
                   />
                 </div>
 
@@ -2383,7 +2410,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
 }
 
 // VISTA COCINA (ADMINISTRACIÓN)
-function AdminView({ registros, selectedDate, setSelectedDate, loading, appSettings, showToast, db }) {
+function AdminView({ registros, selectedDate, setSelectedDate, loading, dataError, onRetry, appSettings, showToast, db }) {
   const [activeTab, setActiveTab] = useState("daily"); // "daily" | "trends" | "monthly"
   const [historyData, setHistoryData] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -3492,6 +3519,32 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
         </>
       ) : activeTab === "daily" ? (
         <>
+          {dataError && (
+            <div className="bg-red-50 dark:bg-red-950/40 border-2 border-red-500/50 rounded-2xl p-5 text-center space-y-3 animate-shake">
+              <div className="flex items-center justify-center gap-2 text-red-700 dark:text-red-300 font-bold text-sm">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <span>{dataError}</span>
+              </div>
+              <p className="text-xs text-red-600 dark:text-red-400">No se pudieron recuperar los registros del día {selectedDate}.</p>
+              {onRetry && (
+                <button 
+                  type="button" 
+                  onClick={onRetry} 
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95"
+                >
+                  Reintentar Carga
+                </button>
+              )}
+            </div>
+          )}
+
+          {loading && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-10 text-center shadow-sm flex flex-col items-center justify-center gap-3 animate-fade-in">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+              <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Cargando datos del día {selectedDate}...</span>
+            </div>
+          )}
+
           {/* Tarjetas KPI de resumen rápido */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
             <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-emerald-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
@@ -3544,6 +3597,16 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
               <UserCheck className="absolute -right-4 -bottom-4 w-14 h-14 text-indigo-500/10 dark:text-indigo-400/5 rotate-12" />
             </div>
           </div>
+
+          {!loading && !dataError && registros.length === 0 && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-10 text-center shadow-sm flex flex-col items-center justify-center gap-3 animate-fade-in">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <Calendar className="w-7 h-7" />
+              </div>
+              <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">No hay registros para el día {selectedDate}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">No se ha registrado ninguna asistencia de comedor ni solicitud de picnic en esta fecha. Los totales permanecen a cero.</p>
+            </div>
+          )}
 
           {/* Matriz de Emplatado Rápido para Cocina (Dietas Especiales y Alérgenos Confirmados) */}
           {Object.keys(consolidatedDietGroups).length > 0 && (

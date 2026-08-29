@@ -143,7 +143,7 @@ def run_tests():
          "Archivo sw.js verificado y registrado en el ciclo de vida de la PWA")
 
     # T18: Multi-pestaña sin conflictos
-    t18 = ("enableIndexedDbPersistence" in app_jsx)
+    t18 = ("persistentMultipleTabManager" in app_jsx or "enableIndexedDbPersistence" in app_jsx)
     test("T18", "La app funciona con una y varias pestañas sin conflictos de caché", t18,
          "Gestor de persistencia offline multi-pestaña activo")
 

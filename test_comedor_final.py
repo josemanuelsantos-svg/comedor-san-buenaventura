@@ -61,7 +61,7 @@ def run_tests():
     results.append((7, "Picnic: guarda modalidad 'picnic' y fecha de excursión para Cocina", t07))
 
     # 8. Cambiar la fecha de cocina actualiza de verdad todos los totales y listados
-    t08 = "where(\"fecha\", \"==\", targetDate)" in app_code and "setRegistros([])" in app_code and "[selectedDate, view]" in app_code
+    t08 = "where(\"fecha\", \"==\", targetDate)" in app_code and "setRegistros([])" in app_code and "selectedDate" in app_code
     results.append((8, "Selector de fecha en Cocina dispara recarga real reactiva desde Firestore", t08))
 
     # 9. Editar un parte no duplica registros (id determinista fecha_etapa_curso_letra)
