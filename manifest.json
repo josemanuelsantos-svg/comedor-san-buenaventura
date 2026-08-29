@@ -1,0 +1,23 @@
+{
+  "name": "Comedor SB - Gestión de Comensales",
+  "short_name": "Comedor SB",
+  "description": "Aplicación de gestión de comensales para el comedor escolar del Colegio San Buenaventura.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
