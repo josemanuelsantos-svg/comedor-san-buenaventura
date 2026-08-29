@@ -2,38 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Autenticación en segundo plano (anónima o individual)
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    // Acceso fluido y directo a todas las colecciones del comedor
-    match /registros_diarios/{document=**} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /alumnos_especiales/{document=**} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /alumnos_clinicos/{document=**} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /configuracion/{document=**} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /totales_diarios/{document=**} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /audit_logs/{document=**} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /usuarios/{document=**} {
-      allow read, write: if isAuthenticated();
+    // Reglas de acceso directo para la gestión de asistencia y comedor
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

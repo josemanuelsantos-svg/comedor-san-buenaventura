@@ -950,10 +950,9 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
       return syncAtt;
     });
 
-    let manualObs = yaRegistrado.ausencias || "";
-    if (manualObs.startsWith("Faltan alumnos estables:")) {
-      const parts = manualObs.split(" | Obs: ");
-      manualObs = parts.length > 1 ? parts[1] : "";
+    let manualObs = yaRegistrado.observaciones || "";
+    if (!manualObs && yaRegistrado.ausencias && !yaRegistrado.ausencias.startsWith("Faltan alumnos estables:")) {
+      manualObs = yaRegistrado.ausencias;
     }
     setManualAusencias(manualObs);
   };
@@ -1041,16 +1040,9 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
 
     const especialesFinal = [...rosterPresentes, ...manualEspecialesConOption];
 
-    // 2. Compilar texto final de alumnos alérgicos ausentes
-    let ausenciasTextoCompleto = "";
-    if (rosterAbsentes.length > 0) {
-      ausenciasTextoCompleto = "Faltan alumnos estables: " + rosterAbsentes.join(", ");
-      if (manualAusencias.trim()) {
-        ausenciasTextoCompleto += " | Obs: " + manualAusencias.trim();
-      }
-    } else {
-      ausenciasTextoCompleto = manualAusencias.trim();
-    }
+    // 2. Compilar texto de ausencias exclusivas del Roster
+    const ausenciasTexto = rosterAbsentes.join(", ");
+    const observacionesTexto = (manualAusencias || "").trim();
     
     try {
       // Registrar datos del aula en Firestore (sin valores undefined)
@@ -1063,14 +1055,16 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
         fijos: Number(formData.fijos) || 0, 
         tickets: Number(formData.tickets) || 0, 
         total: currentTotal,
-        ausencias: ausenciasTextoCompleto || "",
+        totalPlatos: currentTotal,
+        ausencias: ausenciasTexto,
+        observaciones: observacionesTexto,
         profesorNombre: formData.profesorSeQueda ? (formData.profesorNombre || "").trim() : "",
+        profesorSeQueda: Boolean(formData.profesorSeQueda),
         especiales: especialesFinal, 
         especialesPresentes: rosterPresentes,
         especialesAusentes: rosterAbsentes.map(nombre => ({ nombre, nota: "Ausente", option: "falta" })),
         autorUid: (user && user.uid) ? user.uid : "profesor_aula",
         autorNombre: (user && (user.displayName || user.email)) ? (user.displayName || user.email) : "Docente",
-        totalPlatos: currentTotal,
         modalidad: esExcursion ? "picnic" : "comedor",
         fechaExcursion: (esExcursion && fechaExcursion) ? fechaExcursion : "",
         estado: isEditing ? "corregido" : "enviado",
@@ -1362,42 +1356,73 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
             
             {yaRegistrado && !isEditing ? (
                <div className="bg-gradient-to-tr from-blue-50 to-blue-100/50 dark:from-blue-950/10 dark:to-blue-950/20 p-6 rounded-2xl text-center border-blue-200/60 dark:border-blue-900 border animate-scale-up">
-                  <CheckCircle className="w-14 h-14 text-blue-500 dark:text-blue-400 mx-auto mb-3"/>
-                  <h3 className="font-bold text-blue-800 dark:text-blue-300 mb-1">Grupo ya Registrado</h3>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-4">Esta clase ya ha enviado los datos de asistencia para el comedor de hoy.</p>
+                  <CheckCircle className="w-14 h-14 text-emerald-500 dark:text-emerald-400 mx-auto mb-3"/>
+                  <h3 className="font-black text-slate-900 dark:text-white text-base mb-1">Grupo ya Registrado</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Esta clase ya ha enviado los datos de asistencia para esta fecha.</p>
                   
-                  <div className="bg-white dark:bg-slate-850 p-4 rounded-xl shadow-sm mb-5 text-left text-xs border border-blue-100 dark:border-blue-900 space-y-2">
+                  <div className="bg-white dark:bg-slate-850 p-4 rounded-2xl shadow-sm mb-5 text-left text-xs border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div className="flex justify-between border-b dark:border-slate-800 pb-1.5 font-bold">
+                      <span className="text-slate-500 dark:text-slate-400">Modalidad de Servicio:</span> 
+                      <span className={yaRegistrado.esExcursion ? "text-purple-600 dark:text-purple-400" : "text-blue-600 dark:text-blue-400"}>
+                        {yaRegistrado.esExcursion ? `🎒 Excursión Picnic (${yaRegistrado.fechaExcursion || yaRegistrado.fecha})` : "🍽️ Comedor Escolar (Menú Caliente)"}
+                      </span>
+                    </div>
                     <div className="flex justify-between border-b dark:border-slate-800 pb-1.5">
-                      <span className="text-slate-500 dark:text-slate-400 font-medium">Alumnos Fijos (Menú):</span> 
-                      <strong className="text-slate-800 dark:text-slate-200 text-sm">{yaRegistrado.fijos}</strong>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Alumnos Fijos:</span> 
+                      <strong className="text-slate-800 dark:text-slate-200 text-sm">{yaRegistrado.fijos || 0}</strong>
                     </div>
                     <div className="flex justify-between border-b dark:border-slate-800 pb-1.5">
                       <span className="text-slate-500 dark:text-slate-400 font-medium">Tickets Sueltos:</span> 
-                      <strong className="text-slate-800 dark:text-slate-200 text-sm">{yaRegistrado.tickets}</strong>
+                      <strong className="text-slate-800 dark:text-slate-200 text-sm">{yaRegistrado.tickets || 0}</strong>
                     </div>
-                    {yaRegistrado.profesorNombre && (
-                      <div className="flex justify-between border-b dark:border-slate-800 pb-1.5">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Profesor/a:</span> 
-                        <strong className="text-slate-800 dark:text-slate-200 text-xs">{yaRegistrado.profesorNombre}</strong>
+                    <div className="flex justify-between border-b dark:border-slate-800 pb-1.5">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Profesor/a:</span> 
+                      <strong className="text-slate-800 dark:text-slate-200 text-xs">
+                        {yaRegistrado.profesorNombre ? `${yaRegistrado.profesorNombre} (Come hoy • Informativo)` : "No come en comedor"}
+                      </strong>
+                    </div>
+                    {yaRegistrado.especiales && yaRegistrado.especiales.length > 0 && (
+                      <div className="border-b dark:border-slate-800 pb-1.5">
+                        <span className="text-slate-500 dark:text-slate-400 font-medium block mb-1">Dietas especiales confirmadas:</span> 
+                        <div className="flex flex-wrap gap-1">
+                          {yaRegistrado.especiales.map((e, idx) => (
+                            <span key={idx} className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-100 dark:border-emerald-900/40">
+                              {e.nombre} ({e.nota})
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    <div className="flex justify-between font-bold text-blue-700 dark:text-blue-400 pt-1">
-                      <span>Total Platos:</span> 
-                      <span className="text-base">{yaRegistrado.total}</span>
+                    {yaRegistrado.ausencias && yaRegistrado.ausencias.trim() && (
+                      <div className="border-b dark:border-slate-800 pb-1.5">
+                        <span className="text-slate-500 dark:text-slate-400 font-medium block mb-1">Alumnos alérgicos ausentes (No preparar):</span> 
+                        <span className="text-red-600 dark:text-red-400 font-bold text-[11px]">{yaRegistrado.ausencias}</span>
+                      </div>
+                    )}
+                    {yaRegistrado.observaciones && yaRegistrado.observaciones.trim() && (
+                      <div className="border-b dark:border-slate-800 pb-1.5">
+                        <span className="text-slate-500 dark:text-slate-400 font-medium block mb-1">Observaciones del aula:</span> 
+                        <p className="text-slate-700 dark:text-slate-300 italic font-semibold text-[11px]">"{yaRegistrado.observaciones}"</p>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-extrabold text-blue-700 dark:text-blue-400 pt-1 text-sm">
+                      <span>Total Platos a Preparar:</span> 
+                      <span className="text-base font-black">{(Number(yaRegistrado.fijos) || 0) + (Number(yaRegistrado.tickets) || 0)}</span>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    {/* Botón de Edición Protegido por Contraseña (Seguridad por Clave) */}
                     <button 
-                      onClick={handleEditClickProtected} 
-                      className="w-full bg-white dark:bg-slate-800 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-bold py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-750 transition-all flex items-center justify-center gap-2 text-sm shadow-sm"
+                      type="button"
+                      onClick={enableEditMode} 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-xs shadow-md active:scale-98"
                     >
-                      <Edit3 className="w-4 h-4" /> Editar Datos Enviados
+                      <Edit3 className="w-4 h-4" /> Editar Datos Guardados
                     </button>
                     <button 
-                      onClick={() => setStep(1)} 
-                      className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 mt-2 hover:underline"
+                      type="button"
+                      onClick={resetForm} 
+                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all text-xs"
                     >
                       Registrar otra clase
                     </button>
@@ -2160,6 +2185,20 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
     const totComedor = totInfComedor + totPriComedor;
     const totPicnics = totInfPicnic + totPriPicnic;
 
+    const profesoresList = [];
+    registros.forEach(r => {
+      if (r.profesorNombre && r.profesorNombre.trim()) {
+        profesoresList.push({
+          nombre: r.profesorNombre.trim(),
+          clase: `${r.curso} ${r.letra}`,
+          etapa: r.etapa
+        });
+      }
+    });
+
+    const profesoresInfantil = profesoresList.filter(p => p.etapa === "Infantil");
+    const profesoresPrimaria = profesoresList.filter(p => p.etapa === "Primaria");
+
     return { 
       totInfComedor,
       totPriComedor,
@@ -2168,7 +2207,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
       totInfTickets,
       totPriTickets,
       totComedor,
-      totPicnics,
+      totPicnics, 
       totInf: totInfComedor + totInfPicnic,
       totPri: totPriComedor + totPriPicnic,
       total: totComedor + totPicnics, 
@@ -2188,7 +2227,10 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
       totComedorEstandar: totInfComedorEstandar + totPriComedorEstandar,
       totComedorEspecial: totInfComedorEspecial + totPriComedorEspecial,
       totPicnicsEstandar: totInfPicnicEstandar + totPriPicnicEstandar,
-      totPicnicsEspecial: totInfPicnicEspecial + totPriPicnicEspecial
+      totPicnicsEspecial: totInfPicnicEspecial + totPriPicnicEspecial,
+      profesoresList,
+      profesoresInfantil,
+      profesoresPrimaria
     };
   }, [registros]);
 
@@ -2614,11 +2656,18 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
 
     // 1. Obtener todas las observaciones/incidencias de los registros diarios
     registros.forEach(r => {
-      if (r.ausencias && r.ausencias.trim()) {
+      if (r.observaciones && r.observaciones.trim()) {
         observaciones.push({
           clase: `${r.curso} ${r.letra}`,
           etapa: r.etapa,
-          profesor: r.profesorNombre || "Profesor",
+          profesor: r.profesorNombre || "Profesor/a",
+          texto: r.observaciones.trim()
+        });
+      } else if (r.ausencias && r.ausencias.trim() && !r.ausencias.startsWith("Faltan alumnos estables:") && !r.ausencias.includes(",")) {
+        observaciones.push({
+          clase: `${r.curso} ${r.letra}`,
+          etapa: r.etapa,
+          profesor: r.profesorNombre || "Profesor/a",
           texto: r.ausencias.trim()
         });
       }
@@ -2644,7 +2693,10 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             nota: pres.nota || s.nota || s.alergias?.join(", ") || "Dieta Especial",
             clase: `${r.curso} ${r.letra}`,
             etapa: r.etapa,
-            dietaBlanda: pres.dietaBlanda,
+            dietaBlanda: Boolean(pres.dietaBlanda || s.dietaBlanda),
+            telefono: s.telefono || "",
+            medicacion: s.medicacion || "",
+            indicaciones: s.indicaciones || "",
             option: pres.option || (r.esExcursion ? "picnic" : "comedor"),
             esManual: false
           });
@@ -2656,7 +2708,10 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             nota: s.nota || s.alergias?.join(", ") || "Dieta Especial",
             clase: `${r.curso} ${r.letra}`,
             etapa: r.etapa,
-            dietaBlanda: s.dietaBlanda
+            dietaBlanda: Boolean(s.dietaBlanda),
+            telefono: s.telefono || "",
+            medicacion: s.medicacion || "",
+            indicaciones: s.indicaciones || ""
           });
         }
       });
@@ -2669,11 +2724,13 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
             nota: e.nota || "Dieta especial ocasional",
             clase: `${r.curso} ${r.letra}`,
             etapa: r.etapa,
-            dietaBlanda: e.dietaBlanda,
+            dietaBlanda: Boolean(e.dietaBlanda),
+            telefono: e.telefono || "",
+            medicacion: e.medicacion || "",
+            indicaciones: e.indicaciones || "",
             option: e.option || (r.esExcursion ? "picnic" : "comedor"),
             esManual: true
           });
-        }
       });
     });
 
@@ -3095,9 +3152,21 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
         <>
           {/* Tarjetas KPI de resumen rápido */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
+            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-emerald-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-emerald-600 tracking-wider uppercase">Total Platos a Preparar</div>
+                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.total}</div>
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
+                <span>Fijos presentes: <strong className="text-slate-700 dark:text-slate-200">{Math.max(0, stats.total - stats.totTickets)}</strong></span>
+                <span>Tickets sueltos: <strong className="text-amber-600 dark:text-amber-400">{stats.totTickets}</strong></span>
+              </div>
+              <UtensilsCrossed className="absolute -right-4 -bottom-4 w-14 h-14 text-emerald-500/10 dark:text-emerald-400/5 rotate-12" />
+            </div>
+
             <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-blue-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
               <div>
-                <div className="text-[10px] font-extrabold text-blue-550 tracking-wider uppercase">Comedor (Menú)</div>
+                <div className="text-[10px] font-extrabold text-blue-550 tracking-wider uppercase">Comedor (Menú Caliente)</div>
                 <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totComedor}</div>
               </div>
               <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
@@ -3119,27 +3188,18 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, appSetti
               <Backpack className="absolute -right-4 -bottom-4 w-14 h-14 text-purple-500/10 dark:text-purple-400/5 rotate-12" />
             </div>
             
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-emerald-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
+            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-indigo-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
               <div>
-                <div className="text-[10px] font-extrabold text-emerald-600 tracking-wider uppercase">Total General</div>
-                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.total}</div>
+                <div className="text-[10px] font-extrabold text-indigo-500 tracking-wider uppercase">Profesores que Comen</div>
+                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.profesoresList ? stats.profesoresList.length : 0}</div>
               </div>
               <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
-                <span>Estándar: <strong className="text-slate-700 dark:text-slate-200">{stats.totComedorEstandar + stats.totPicnicsEstandar}</strong></span>
-                <span>Especiales: <strong className="text-emerald-600 dark:text-emerald-450">{stats.totComedorEspecial + stats.totPicnicsEspecial}</strong></span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-bold text-[10px]">Informativo • (+0 platos)</span>
+                <span className="truncate text-slate-600 dark:text-slate-300">
+                  {stats.profesoresList && stats.profesoresList.length > 0 ? stats.profesoresList.map(p => p.nombre).join(", ") : "Ninguno"}
+                </span>
               </div>
-              <Users className="absolute -right-4 -bottom-4 w-14 h-14 text-emerald-500/10 dark:text-emerald-400/5 rotate-12" />
-            </div>
-            
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-amber-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
-              <div>
-                <div className="text-[10px] font-extrabold text-amber-500 tracking-wider uppercase">Tickets Sueltos</div>
-                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totTickets}</div>
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
-                <span>Tickets: <strong className="text-slate-700 dark:text-slate-200">{stats.totTickets}</strong></span>
-              </div>
-              <Ticket className="absolute -right-4 -bottom-4 w-14 h-14 text-amber-500/10 dark:text-amber-400/5 rotate-12" />
+              <UserCheck className="absolute -right-4 -bottom-4 w-14 h-14 text-indigo-500/10 dark:text-indigo-400/5 rotate-12" />
             </div>
           </div>
 
@@ -3745,15 +3805,23 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
   const [letrasInput, setLetrasInput] = useState(settings.letras.join(", "));
   const [cursosInfantilInput, setCursosInfantilInput] = useState(settings.cursosInfantil.join(", "));
   const [cursosPrimariaInput, setCursosPrimariaInput] = useState(settings.cursosPrimaria.join(", "));
-  
-  // Clave de Seguridad (Seguridad por Clave)
-  const [adminPassword, setAdminPassword] = useState(() => {
-    return localStorage.getItem("comedor_admin_password") || "comedorcsb";
-  });
 
   // Roster permanente de alumnos
   const [roster, setRoster] = useState([]);
-  const [nuevoAlumno, setNuevoAlumno] = useState({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, tipoHabitual: "no_comedor", alergias: [] });
+  const [nuevoAlumno, setNuevoAlumno] = useState({ 
+    nombre: "", 
+    etapa: "Primaria", 
+    curso: "3º", 
+    letra: "A", 
+    nota: "", 
+    dietaBlanda: false, 
+    tipoHabitual: "no_comedor", 
+    alergias: [],
+    telefono: "",
+    medicacion: "",
+    indicaciones: ""
+  });
+  const [editingStudent, setEditingStudent] = useState(null);
 
   // Estados para gestión de actividades extra
   const [editingActivity, setEditingActivity] = useState(null);
@@ -3798,12 +3866,6 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
       return;
     }
 
-    if (adminPassword.trim().length === 0) {
-      alert("La clave de administración no puede quedar vacía.");
-      return;
-    }
-    localStorage.setItem("comedor_admin_password", adminPassword.trim());
-
     onSave({
       ...settings,
       maxComensales: Number(maxComensales) || 35,
@@ -3811,7 +3873,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
       cursosInfantil,
       cursosPrimaria
     });
-    showToast("Ajustes generales guardados.", "success");
+    showToast("Ajustes generales guardados correctamente.", "success");
   };
 
   const handleAddAlumnoRoster = async () => {
@@ -3833,15 +3895,50 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
         curso: nuevoAlumno.curso,
         letra: nuevoAlumno.letra,
         nota: alergiasFinal.join(", "),
-        dietaBlanda: nuevoAlumno.dietaBlanda,
-        tipoHabitual: nuevoAlumno.tipoHabitual || "no_comedor"
+        dietaBlanda: Boolean(nuevoAlumno.dietaBlanda),
+        tipoHabitual: nuevoAlumno.tipoHabitual || "no_comedor",
+        telefono: nuevoAlumno.telefono ? nuevoAlumno.telefono.trim() : "",
+        medicacion: nuevoAlumno.medicacion ? nuevoAlumno.medicacion.trim() : "",
+        indicaciones: nuevoAlumno.indicaciones ? nuevoAlumno.indicaciones.trim() : ""
       });
 
-      setNuevoAlumno({ nombre: "", etapa: "Primaria", curso: "3º", letra: "A", nota: "", dietaBlanda: false, tipoHabitual: "no_comedor", alergias: [] });
+      setNuevoAlumno({ 
+        nombre: "", etapa: "Primaria", curso: "3º", letra: "A", 
+        nota: "", dietaBlanda: false, tipoHabitual: "no_comedor", alergias: [],
+        telefono: "", medicacion: "", indicaciones: ""
+      });
       showToast("Alumno añadido al Roster permanentemente.", "success");
     } catch (err) {
       console.error(err);
       showToast("Error al guardar alumno en la base de datos.", "error");
+    }
+  };
+
+  const handleSaveEditAlumno = async () => {
+    if (!editingStudent || !editingStudent.nombre.trim()) {
+      showToast("El nombre del alumno es obligatorio.", "warning");
+      return;
+    }
+    try {
+      const docRef = doc(db, "alumnos_especiales", editingStudent.id);
+      await setDoc(docRef, {
+        nombre: editingStudent.nombre.trim(),
+        etapa: editingStudent.etapa,
+        curso: editingStudent.curso,
+        letra: editingStudent.letra,
+        nota: editingStudent.nota || "",
+        dietaBlanda: Boolean(editingStudent.dietaBlanda),
+        tipoHabitual: editingStudent.tipoHabitual || "no_comedor",
+        telefono: editingStudent.telefono ? editingStudent.telefono.trim() : "",
+        medicacion: editingStudent.medicacion ? editingStudent.medicacion.trim() : "",
+        indicaciones: editingStudent.indicaciones ? editingStudent.indicaciones.trim() : ""
+      }, { merge: true });
+
+      setEditingStudent(null);
+      showToast("Ficha del alumno actualizada con éxito.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error al actualizar la ficha del alumno.", "error");
     }
   };
 
@@ -3978,7 +4075,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-md border border-slate-200/60 dark:border-slate-800 overflow-hidden animate-fade-in">
       <div className="bg-slate-50 dark:bg-slate-850 px-6 py-4 border-b border-slate-150 dark:border-slate-800 flex flex-col sm:flex-row gap-4 justify-between items-center">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base flex gap-2 items-center">
-          <Settings className="w-5 h-5 text-blue-500"/> Configuración de Comedor
+          <Settings className="w-5 h-5 text-blue-500"/> Configuración de Comedor y Alumnado
         </h3>
         
         <div className="flex bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-250 dark:border-slate-700 w-full sm:w-auto">
@@ -3994,7 +4091,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
             onClick={() => setSettingsTab("roster")} 
             className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded transition-all ${settingsTab === "roster" ? "bg-white dark:bg-slate-700 text-blue-650 dark:text-blue-400 shadow-sm" : "text-slate-555 dark:text-slate-400 hover:text-slate-800"}`}
           >
-            Roster de Alérgenos
+            Roster de Alérgenos ({roster.length})
           </button>
           <button 
             type="button"
@@ -4063,24 +4160,10 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
             />
           </div>
 
-          <div className="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-4">
-            <label className="block font-bold text-slate-755 dark:text-slate-300">
-              Contraseña de Administración:
-            </label>
-            <input 
-              type="text" 
-              value={adminPassword} 
-              onChange={e => setAdminPassword(e.target.value)} 
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-205 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-150 dark:focus:ring-blue-950 font-bold text-slate-800 dark:text-slate-200"
-              placeholder="comedorcsb"
-            />
-            <p className="text-[10px] text-slate-400">Clave requerida para entrar a las vistas de Cocina y Ajustes (Por defecto: comedorcsb).</p>
-          </div>
-
           <button 
             type="button"
             onClick={handleSaveGeneral} 
-            className="w-full bg-blue-650 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all active:scale-98"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all active:scale-98"
           >
             Guardar Ajustes Generales
           </button>
@@ -4089,9 +4172,10 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
 
       {settingsTab === "roster" && (
         <div className="p-6 space-y-6 text-sm">
+          {/* Formulario Añadir Estudiante */}
           <div className="bg-slate-50 dark:bg-slate-855/45 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-3">
             <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
-              <Plus className="w-4 h-4 text-blue-505"/> Añadir Estudiante Estable al Roster
+              <Plus className="w-4 h-4 text-blue-500"/> Añadir Estudiante al Roster de Alergias
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -4101,7 +4185,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                   type="text" 
                   value={nuevoAlumno.nombre} 
                   onChange={e => setNuevoAlumno(prev => ({ ...prev, nombre: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 font-semibold"
                   placeholder="Ej: Sofía García"
                 />
               </div>
@@ -4144,7 +4228,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
             <div className="space-y-2">
               <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Alergias Comunes</span>
               <div className="flex flex-wrap gap-1.5">
-                {["Gluten", "Lactosa", "Huevo", "Frutos Secos", "Pescado"].map(tag => {
+                {["Gluten", "Lactosa", "Huevo", "Frutos Secos", "Pescado", "Legumbres", "PLV"].map(tag => {
                   const active = nuevoAlumno.alergias.includes(tag);
                   return (
                     <button 
@@ -4153,7 +4237,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                       onClick={() => toggleAllergyFormTag(tag)}
                       className={`text-[10.5px] px-2.5 py-1 rounded-full font-semibold border transition-all ${
                         active 
-                          ? "bg-blue-650 border-blue-650 text-white shadow-sm" 
+                          ? "bg-blue-600 border-blue-600 text-white shadow-sm" 
                           : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-405 hover:border-slate-350"
                       }`}
                     >
@@ -4165,31 +4249,34 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-              <div className="flex flex-col gap-1 text-left justify-end">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Otra Alergia / Detalle</label>
                 <input 
                   type="text" 
-                  placeholder="Otra alergia o nota adicional..." 
+                  placeholder="Detalle de alergia..." 
                   value={nuevoAlumno.nota}
                   onChange={e => setNuevoAlumno(prev => ({ ...prev, nota: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-sm"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
                 />
               </div>
-              <label className="flex gap-2 items-center text-xs font-bold text-slate-650 dark:text-slate-400 cursor-pointer bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-755 w-full select-none h-[38px] self-end">
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Teléfono Contacto</label>
                 <input 
-                  type="checkbox" 
-                  className="w-4 h-4 accent-green-600 rounded" 
-                  checked={nuevoAlumno.dietaBlanda} 
-                  onChange={e => setNuevoAlumno(prev => ({ ...prev, dietaBlanda: e.target.checked }))}
-                /> 
-                <span>Dieta Blanda (Arroz, pollo)</span>
-              </label>
-              
-              <div className="flex flex-col gap-1 text-left">
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frecuencia Comedor</label>
+                  type="text" 
+                  placeholder="Ej: 612345678" 
+                  value={nuevoAlumno.telefono || ""}
+                  onChange={e => setNuevoAlumno(prev => ({ ...prev, telefono: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Frecuencia Comedor</label>
                 <select 
                   value={nuevoAlumno.tipoHabitual || "no_comedor"} 
                   onChange={e => setNuevoAlumno(prev => ({ ...prev, tipoHabitual: e.target.value }))}
-                  className="w-full px-2.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer h-[38px]"
+                  className="w-full px-2.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer"
                 >
                   <option value="no_comedor">No suele quedarse (No Comedor)</option>
                   <option value="fijo">Suele quedarse (Fijo)</option>
@@ -4197,18 +4284,203 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
               </div>
             </div>
 
-            <button 
-              type="button"
-              onClick={handleAddAlumnoRoster}
-              className="w-full py-2.5 bg-blue-650 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs uppercase tracking-wide mt-2"
-            >
-              Registrar Estudiante en el Roster
-            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Medicación / Urgencias</label>
+                <input 
+                  type="text" 
+                  placeholder="Ej: Adrenalina autoinyectable en secretaría..." 
+                  value={nuevoAlumno.medicacion || ""}
+                  onChange={e => setNuevoAlumno(prev => ({ ...prev, medicacion: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Indicaciones Operativas</label>
+                <input 
+                  type="text" 
+                  placeholder="Ej: Cuidado estricto con trazas de huevo..." 
+                  value={nuevoAlumno.indicaciones || ""}
+                  onChange={e => setNuevoAlumno(prev => ({ ...prev, indicaciones: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between">
+              <label className="flex gap-2 items-center text-xs font-bold text-slate-650 dark:text-slate-400 cursor-pointer bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-755 select-none">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 accent-green-600 rounded" 
+                  checked={nuevoAlumno.dietaBlanda} 
+                  onChange={e => setNuevoAlumno(prev => ({ ...prev, dietaBlanda: e.target.checked }))}
+                /> 
+                <span>Dieta Blanda permanente</span>
+              </label>
+
+              <button 
+                type="button"
+                onClick={handleAddAlumnoRoster}
+                className="py-2.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs uppercase tracking-wide"
+              >
+                Guardar Estudiante
+              </button>
+            </div>
           </div>
 
+          {/* Modal / Panel de Edición de Alumno */}
+          {editingStudent && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
+                    <Edit3 className="w-5 h-5 text-blue-500" /> Editar Ficha de Alumno
+                  </h3>
+                  <button 
+                    type="button"
+                    onClick={() => setEditingStudent(null)} 
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    aria-label="Cerrar modal de edición"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Nombre Completo</label>
+                    <input 
+                      type="text" 
+                      value={editingStudent.nombre} 
+                      onChange={e => setEditingStudent({ ...editingStudent, nombre: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Etapa</label>
+                      <select 
+                        value={editingStudent.etapa} 
+                        onChange={e => setEditingStudent({ ...editingStudent, etapa: e.target.value })}
+                        className="w-full px-2 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl"
+                      >
+                        <option value="Infantil">Infantil</option>
+                        <option value="Primaria">Primaria</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Curso</label>
+                      <input 
+                        type="text" 
+                        value={editingStudent.curso} 
+                        onChange={e => setEditingStudent({ ...editingStudent, curso: e.target.value })}
+                        className="w-full px-2 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Letra</label>
+                      <input 
+                        type="text" 
+                        value={editingStudent.letra} 
+                        onChange={e => setEditingStudent({ ...editingStudent, letra: e.target.value })}
+                        className="w-full px-2 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Alergias / Intolerancias</label>
+                    <input 
+                      type="text" 
+                      value={editingStudent.nota || ""} 
+                      onChange={e => setEditingStudent({ ...editingStudent, nota: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Teléfono Contacto</label>
+                      <input 
+                        type="text" 
+                        value={editingStudent.telefono || ""} 
+                        onChange={e => setEditingStudent({ ...editingStudent, telefono: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl"
+                        placeholder="Teléfono padres"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Frecuencia Comedor</label>
+                      <select 
+                        value={editingStudent.tipoHabitual || "no_comedor"} 
+                        onChange={e => setEditingStudent({ ...editingStudent, tipoHabitual: e.target.value })}
+                        className="w-full px-2 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold"
+                      >
+                        <option value="no_comedor">No suele quedarse</option>
+                        <option value="fijo">Suele quedarse (Fijo)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Medicación / Urgencias</label>
+                    <input 
+                      type="text" 
+                      value={editingStudent.medicacion || ""} 
+                      onChange={e => setEditingStudent({ ...editingStudent, medicacion: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Indicaciones Operativas</label>
+                    <input 
+                      type="text" 
+                      value={editingStudent.indicaciones || ""} 
+                      onChange={e => setEditingStudent({ ...editingStudent, indicaciones: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl"
+                    />
+                  </div>
+
+                  <label className="flex gap-2 items-center text-xs font-bold text-slate-650 dark:text-slate-400 cursor-pointer bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 accent-green-600 rounded" 
+                      checked={Boolean(editingStudent.dietaBlanda)} 
+                      onChange={e => setEditingStudent({ ...editingStudent, dietaBlanda: e.target.checked })}
+                    /> 
+                    <span>Dieta Blanda permanente</span>
+                  </label>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button 
+                    type="button"
+                    onClick={() => setEditingStudent(null)} 
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleSaveEditAlumno} 
+                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md"
+                  >
+                    Guardar Cambios
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Listado de Estudiantes */}
           <div className="space-y-3">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-              <span className="block text-xs font-bold text-slate-400 dark:text-slate-505 uppercase tracking-wider">Alumnos en la Base de Datos ({roster.length})</span>
+              <span className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                Alumnos en la Base de Datos ({roster.length})
+              </span>
               {roster.length > 0 && (
                 <div className="flex gap-2">
                   <button
@@ -4216,7 +4488,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                     onClick={() => handleBulkUpdateFrecuencia("fijo")}
                     className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-955/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-[10px] font-bold rounded-lg transition-colors border border-blue-200/40 dark:border-blue-900/40 flex items-center gap-1"
                   >
-                    <span>Fijos Todos (Suelen quedarse)</span>
+                    <span>Fijos Todos</span>
                   </button>
                   <button
                     type="button"
@@ -4242,10 +4514,10 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                       return a.nombre.localeCompare(b.nombre); 
                     })
                     .map(student => (
-                      <div key={student.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
-                        <div>
-                          <div className="font-bold text-slate-800 dark:text-slate-205 flex items-center gap-2 flex-wrap">
-                            <span>{student.nombre}</span>
+                      <div key={student.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 flex-wrap">
+                            <span className="text-sm">{student.nombre}</span>
                             <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md ${student.etapa === 'Infantil' ? 'bg-pink-100 text-pink-700 dark:bg-pink-955/40 dark:text-pink-400' : 'bg-blue-100 text-blue-755 dark:bg-blue-955/40 dark:text-blue-400'}`}>
                               {student.etapa} {student.curso}-{student.letra}
                             </span>
@@ -4266,17 +4538,52 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                               <span className="text-[8px] opacity-70">🔄</span>
                             </button>
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{student.nota}</div>
+                          
+                          <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1">
+                            {student.nota || "Sin notas de alérgenos"}
+                          </div>
+
+                          {(student.telefono || student.medicacion || student.indicaciones) && (
+                            <div className="flex flex-wrap gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">
+                              {student.telefono && (
+                                <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold">
+                                  📞 {student.telefono}
+                                </span>
+                              )}
+                              {student.medicacion && (
+                                <span className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">
+                                  💊 {student.medicacion}
+                                </span>
+                              )}
+                              {student.indicaciones && (
+                                <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 px-1.5 py-0.5 rounded font-semibold italic">
+                                  ℹ️ {student.indicaciones}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         
-                        <button 
-                          type="button"
-                          onClick={() => handleDeleteAlumnoRoster(student.id)}
-                          className="p-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-405 hover:text-red-650 rounded-lg transition-colors"
-                          title="Eliminar de la Base de Datos"
-                        >
-                          <Trash2 className="w-4 h-4"/>
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button 
+                            type="button"
+                            onClick={() => setEditingStudent(student)}
+                            className="p-2 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
+                            title="Editar Ficha"
+                            aria-label={`Editar ficha de ${student.nombre}`}
+                          >
+                            <Edit3 className="w-4 h-4"/>
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteAlumnoRoster(student.id)}
+                            className="p-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-650 rounded-lg transition-colors"
+                            title="Eliminar de la Base de Datos"
+                            aria-label={`Eliminar a ${student.nombre}`}
+                          >
+                            <Trash2 className="w-4 h-4"/>
+                          </button>
+                        </div>
                       </div>
                     ))
                   }
