@@ -3004,16 +3004,49 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                 />
               </>
             ) : (
-              <>
-                <History className="text-blue-500 w-4 h-4 shrink-0"/>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Historial:</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date(selectedDate + "T12:00:00");
+                    d.setDate(d.getDate() - 1);
+                    setSelectedDate(getLocalISODate(d));
+                  }}
+                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
+                  title="Día anterior"
+                  aria-label="Día anterior"
+                >
+                  <ChevronDown className="w-3.5 h-3.5 rotate-90" />
+                </button>
+                <Calendar className="text-blue-500 w-3.5 h-3.5 shrink-0 ml-0.5"/>
                 <input 
                   type="date" 
                   value={selectedDate} 
                   onChange={e => setSelectedDate(e.target.value)} 
-                  className="font-bold text-slate-705 dark:text-slate-250 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 outline-none cursor-pointer text-xs"
+                  aria-label="Seleccionar fecha"
+                  className="font-bold text-slate-700 dark:text-slate-200 bg-transparent border-0 outline-none cursor-pointer text-xs"
                 />
-              </>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date(selectedDate + "T12:00:00");
+                    d.setDate(d.getDate() + 1);
+                    setSelectedDate(getLocalISODate(d));
+                  }}
+                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
+                  title="Día siguiente"
+                  aria-label="Día siguiente"
+                >
+                  <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(getLocalISODate())}
+                  className="px-2 py-0.5 bg-blue-100 dark:bg-blue-950/60 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-md text-[10px] font-extrabold uppercase transition-colors"
+                >
+                  Hoy
+                </button>
+              </div>
             )}
          </div>
       </div>

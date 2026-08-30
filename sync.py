@@ -52,7 +52,34 @@ try:
   <meta name="apple-mobile-web-app-title" content="Comedor SB">
   <link rel="icon" type="image/png" href="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png">
   <link rel="shortcut icon" type="image/png" href="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png">
-  <link rel="apple-touch-icon" href="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png">
+  <!-- Supresión de advertencias de desarrollo CDN en consola -->
+  <script>
+    (function() {{
+      const origWarn = console.warn;
+      console.warn = function(...args) {{
+        if (args.length > 0 && typeof args[0] === 'string') {{
+          if (
+            args[0].includes('cdn.tailwindcss.com') ||
+            args[0].includes('Babel transformer') ||
+            args[0].includes('in-browser Babel') ||
+            args[0].includes('precompile your scripts')
+          ) {{
+            return;
+          }}
+        }}
+        origWarn.apply(console, args);
+      }};
+      const origInfo = console.info;
+      console.info = function(...args) {{
+        if (args.length > 0 && typeof args[0] === 'string') {{
+          if (args[0].includes('Babel transformer') || args[0].includes('cdn.tailwindcss.com')) {{
+            return;
+          }}
+        }}
+        origInfo.apply(console, args);
+      }};
+    }})();
+  </script>
 
   <!-- Tailwind CSS v3 Play CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
