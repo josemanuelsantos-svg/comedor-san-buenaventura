@@ -2845,6 +2845,98 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
     return groups;
   }, [presentes]);
 
+  // Resumen consolidado de alérgicos y dietas especiales diferenciados exclusivamente por etapa
+  const allergySummary = useMemo(() => {
+    const allergenCategories = [
+      {
+        key: "gluten",
+        label: "Gluten / Celiaquía",
+        icon: "🌾",
+        test: (nota, isBlanda) => !isBlanda && (nota.includes("gluten") || nota.includes("celiac"))
+      },
+      {
+        key: "lactosa",
+        label: "Lactosa / Leche (PLV)",
+        icon: "🥛",
+        test: (nota, isBlanda) => !isBlanda && (nota.includes("lactosa") || nota.includes("leche") || nota.includes("plv") || nota.includes("aplv"))
+      },
+      {
+        key: "huevo",
+        label: "Huevo",
+        icon: "🥚",
+        test: (nota, isBlanda) => !isBlanda && nota.includes("huevo")
+      },
+      {
+        key: "frutosSecos",
+        label: "Frutos Secos / Cacahuete",
+        icon: "🥜",
+        test: (nota, isBlanda) => !isBlanda && (nota.includes("fruto") || nota.includes("nuez") || nota.includes("cacahuete") || nota.includes("almendra") || nota.includes("pistacho") || nota.includes("anacardo") || nota.includes("avellana"))
+      },
+      {
+        key: "pescadoMarisco",
+        label: "Pescado / Marisco",
+        icon: "🐟",
+        test: (nota, isBlanda) => !isBlanda && (nota.includes("marisco") || nota.includes("pescado") || nota.includes("mejillón") || nota.includes("camarón") || nota.includes("gamba"))
+      },
+      {
+        key: "legumbres",
+        label: "Legumbres",
+        icon: "🫘",
+        test: (nota, isBlanda) => !isBlanda && (nota.includes("legumbre") || nota.includes("lenteja") || nota.includes("guisante") || nota.includes("alubia") || nota.includes("garbanzo") || nota.includes("soja"))
+      },
+      {
+        key: "frutas",
+        label: "Frutas / Verduras",
+        icon: "🍎",
+        test: (nota, isBlanda) => !isBlanda && (nota.includes("melocotón") || nota.includes("plátano") || nota.includes("naranja") || nota.includes("kiwi") || nota.includes("fruta") || nota.includes("manzana") || nota.includes("fresa") || nota.includes("tomate"))
+      },
+      {
+        key: "sinCerdo",
+        label: "Sin Cerdo (Religiosa/Cultural)",
+        icon: "🚫",
+        test: (nota, isBlanda) => !isBlanda && nota.includes("cerdo")
+      },
+      {
+        key: "dietaBlanda",
+        label: "Dieta Blanda",
+        icon: "🍲",
+        test: (nota, isBlanda) => Boolean(isBlanda) || nota.includes("blanda")
+      },
+    ];
+
+    const mapped = allergenCategories.map(cat => {
+      const students = presentes.filter(p => cat.test((p.nota || "").toLowerCase(), p.dietaBlanda));
+      const infantil = students.filter(s => s.etapa === "Infantil").length;
+      const primaria = students.filter(s => s.etapa === "Primaria").length;
+      return {
+        ...cat,
+        total: students.length,
+        infantil,
+        primaria,
+        students
+      };
+    });
+
+    const otherStudents = presentes.filter(p => {
+      const n = (p.nota || "").toLowerCase();
+      return !allergenCategories.some(cat => cat.test(n, p.dietaBlanda));
+    });
+
+    if (otherStudents.length > 0) {
+      mapped.push({
+        key: "otras",
+        label: "Otras Dietas Especiales",
+        icon: "🥗",
+        total: otherStudents.length,
+        infantil: otherStudents.filter(s => s.etapa === "Infantil").length,
+        primaria: otherStudents.filter(s => s.etapa === "Primaria").length,
+        students: otherStudents
+      });
+    }
+
+    return mapped.filter(item => item.total > 0);
+  }, [presentes]);
+
   return (
     <div className="space-y-4 animate-fade-in print:space-y-6">
       
@@ -3326,127 +3418,130 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
             </div>
           </div>
 
-          {/* Tarjeta Principal de Totales Esenciales de Cocina (Simple & Limpia) */}
-          <div className="bg-gradient-to-br from-emerald-600 via-teal-700 to-blue-700 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden print:bg-white print:text-black print:border-2 print:border-black print:p-4 animate-fade-in">
+          {/* Tarjeta Principal de Totales Esenciales de Cocina (Super Limpia) */}
+          <div className="bg-gradient-to-br from-emerald-600 via-teal-700 to-blue-700 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden print:bg-white print:text-black print:border-2 print:border-black print:p-4 animate-fade-in text-left">
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/20 pb-5 print:border-black">
               <div>
                 <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-100 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm print:text-black print:bg-transparent">
-                  🍽️ TOTAL RACIONES A PREPARAR
+                  🍽️ TOTAL COMIDAS A PREPARAR
                 </span>
                 <div className="flex items-baseline gap-3 mt-2">
                   <span className="text-5xl md:text-6xl font-black tracking-tight">{stats.total}</span>
-                  <span className="text-xl font-bold text-emerald-100 print:text-black">platos</span>
+                  <span className="text-xl font-bold text-emerald-100 print:text-black">comidas en total</span>
                 </div>
               </div>
 
-              {/* Desglose Fijos vs Tickets */}
-              <div className="flex gap-2 text-xs font-bold">
-                <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-2.5 border border-white/10 text-center print:bg-slate-100 print:text-black">
-                  <div className="text-[10px] text-emerald-100 uppercase tracking-wider print:text-slate-600">Alumnos Fijos</div>
-                  <div className="text-xl font-black">{Math.max(0, stats.total - stats.totTickets)}</div>
+              {/* Diferenciado ÚNICAMENTE por etapa */}
+              <div className="flex gap-3 text-xs font-bold w-full md:w-auto">
+                <div className="flex-1 md:flex-none bg-white/15 backdrop-blur-sm rounded-2xl px-5 py-3 border border-white/10 text-center print:bg-slate-100 print:text-black min-w-[130px]">
+                  <div className="text-[11px] text-pink-100 uppercase tracking-wider font-extrabold print:text-slate-600 flex items-center justify-center gap-1">
+                    <span>🍼 Infantil</span>
+                  </div>
+                  <div className="text-2xl font-black mt-0.5">{stats.totInf}</div>
+                  <div className="text-[10px] text-emerald-100/80 font-medium">comidas</div>
                 </div>
-                <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-2.5 border border-white/10 text-center print:bg-slate-100 print:text-black">
-                  <div className="text-[10px] text-amber-200 uppercase tracking-wider print:text-slate-600">Tickets Sueltos</div>
-                  <div className="text-xl font-black text-amber-200 print:text-black">{stats.totTickets}</div>
+
+                <div className="flex-1 md:flex-none bg-white/15 backdrop-blur-sm rounded-2xl px-5 py-3 border border-white/10 text-center print:bg-slate-100 print:text-black min-w-[130px]">
+                  <div className="text-[11px] text-blue-100 uppercase tracking-wider font-extrabold print:text-slate-600 flex items-center justify-center gap-1">
+                    <span>🎒 Primaria</span>
+                  </div>
+                  <div className="text-2xl font-black mt-0.5">{stats.totPri}</div>
+                  <div className="text-[10px] text-emerald-100/80 font-medium">comidas</div>
                 </div>
               </div>
             </div>
 
-            {/* 4 Bloques Clave de Servicio */}
-            <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 pt-5 text-left">
-              {/* Comedor Caliente */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 flex flex-col justify-between print:bg-slate-50 print:text-black print:border-slate-300">
-                <div className="flex justify-between items-center text-xs font-bold text-emerald-100 print:text-slate-700">
-                  <span>🍲 Comedor Caliente</span>
-                  <span className="text-lg font-black text-white print:text-black">{stats.totComedor}</span>
-                </div>
-                <div className="text-[11px] text-emerald-100/90 print:text-slate-600 mt-2 space-y-0.5 font-medium">
-                  <div>Estándar: <strong className="text-white print:text-black">{stats.totComedorEstandar}</strong></div>
-                  <div>Dietas Especiales: <strong className="text-amber-200 print:text-black">{stats.totComedorEspecial}</strong></div>
-                </div>
+            {/* Fila Operativa Rápida: Docentes & Picnics */}
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-4 text-xs font-medium print:text-black print:border-slate-300">
+              <div className="flex flex-wrap items-center gap-3">
+                {stats.profesoresList && stats.profesoresList.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-emerald-100 print:text-black">
+                    <UserCheck className="w-4 h-4 text-emerald-200 print:text-black" />
+                    <span>Docentes ({stats.profesoresList.length}): <strong>{stats.profesoresList.map(p => p.nombre).join(", ")}</strong></span>
+                    <span className="text-[10px] bg-white/15 px-2 py-0.5 rounded-full text-emerald-100 font-bold ml-1 print:text-slate-600 print:bg-slate-100">
+                      Informativo • (+0 platos)
+                    </span>
+                  </div>
+                )}
+
+                {stats.totPicnics > 0 && (
+                  <div className="flex items-center gap-1.5 text-purple-100 print:text-black">
+                    <span className="bg-purple-500/40 text-purple-100 px-2.5 py-0.5 rounded-lg font-bold flex items-center gap-1">
+                      🎒 Picnics (Excursión): <strong>{stats.totPicnics}</strong> ({stats.totInfPicnic} Infantil • {stats.totPriPicnic} Primaria)
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Picnics Excursión */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 flex flex-col justify-between print:bg-slate-50 print:text-black print:border-slate-300">
-                <div className="flex justify-between items-center text-xs font-bold text-purple-100 print:text-slate-700">
-                  <span>🎒 Picnics Excursión</span>
-                  <span className="text-lg font-black text-white print:text-black">{stats.totPicnics}</span>
-                </div>
-                <div className="text-[11px] text-purple-100/90 print:text-slate-600 mt-2 space-y-0.5 font-medium">
-                  <div>Estándar: <strong className="text-white print:text-black">{stats.totPicnicsEstandar}</strong></div>
-                  <div>Dietas Especiales: <strong className="text-purple-200 print:text-black">{stats.totPicnicsEspecial}</strong></div>
-                </div>
-              </div>
-
-              {/* Infantil */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 flex flex-col justify-between print:bg-slate-50 print:text-black print:border-slate-300">
-                <div className="flex justify-between items-center text-xs font-bold text-pink-100 print:text-slate-700">
-                  <span>🍼 Infantil</span>
-                  <span className="text-lg font-black text-white print:text-black">{stats.totInf}</span>
-                </div>
-                <div className="text-[11px] text-pink-100/90 print:text-slate-600 mt-2 space-y-0.5 font-medium">
-                  <div>Comedor: <strong className="text-white print:text-black">{stats.totInfComedor}</strong> • Picnic: <strong className="text-white print:text-black">{stats.totInfPicnic}</strong></div>
-                  <div>Tickets: <strong className="text-amber-200 print:text-black">{stats.totInfTickets}</strong></div>
-                </div>
-              </div>
-
-              {/* Primaria */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 flex flex-col justify-between print:bg-slate-50 print:text-black print:border-slate-300">
-                <div className="flex justify-between items-center text-xs font-bold text-blue-100 print:text-slate-700">
-                  <span>🎒 Primaria</span>
-                  <span className="text-lg font-black text-white print:text-black">{stats.totPri}</span>
-                </div>
-                <div className="text-[11px] text-blue-100/90 print:text-slate-600 mt-2 space-y-0.5 font-medium">
-                  <div>Comedor: <strong className="text-white print:text-black">{stats.totPriComedor}</strong> • Picnic: <strong className="text-white print:text-black">{stats.totPriPicnic}</strong></div>
-                  <div>Tickets: <strong className="text-amber-200 print:text-black">{stats.totPriTickets}</strong></div>
-                </div>
+              {/* Soporte de métricas técnicas / print */}
+              <div className="hidden">
+                <span>totPicnicsEstandar: {stats.totPicnicsEstandar}</span>
+                <span>totComedorEstandar: {stats.totComedorEstandar}</span>
+                <span>totComedorEspecial: {stats.totComedorEspecial}</span>
+                <span>totTickets: {stats.totTickets}</span>
               </div>
             </div>
-
-            {/* Docentes informativo */}
-            {stats.profesoresList && stats.profesoresList.length > 0 && (
-              <div className="relative z-10 mt-4 pt-3 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold print:text-black print:border-slate-300">
-                <div className="flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-emerald-200 print:text-black" />
-                  <span>Docentes ({stats.profesoresList.length}): <strong>{stats.profesoresList.map(p => p.nombre).join(", ")}</strong></span>
-                </div>
-                <span className="text-[10px] bg-white/15 px-2 py-0.5 rounded-full text-emerald-100 font-bold print:text-slate-600 print:bg-slate-100">
-                  Informativo (+0 platos)
-                </span>
-              </div>
-            )}
 
             <UtensilsCrossed className="absolute -right-6 -bottom-6 w-40 h-40 text-white/5 rotate-12 pointer-events-none print:hidden" />
           </div>
 
-          {/* Resumen Compacto y Directo de Dietas Especiales (Si las hay) */}
-          {Object.keys(consolidatedDietGroups).length > 0 && (
-            <div className="bg-amber-50/70 dark:bg-amber-955/20 border border-amber-200/80 dark:border-amber-900/40 rounded-2xl p-4 shadow-sm text-left animate-fade-in print:hidden">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-amber-200/60 dark:border-amber-900/30">
-                <div className="flex items-center gap-2">
-                  <Salad className="w-4 h-4 text-amber-600" />
-                  <span className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                    Dietas Especiales a Preparar: {presentes.length} {presentes.length === 1 ? "ración" : "raciones"}
-                  </span>
+          {/* Resumen de Alergias y Dietas Especiales (Totales por tipo diferenciados únicamente por etapa) */}
+          {allergySummary.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm text-left animate-fade-in print:hidden">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Salad className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                      Alérgicos y Dietas Especiales
+                    </h3>
+                    <span className="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full text-xs">
+                      {presentes.length} {presentes.length === 1 ? "comensal" : "comensales"} en total
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                    Diferenciados por etapa: <strong className="text-pink-600 dark:text-pink-400">{presentesInfantil.length} Infantil</strong> • <strong className="text-blue-600 dark:text-blue-400">{presentesPrimaria.length} Primaria</strong>
+                  </p>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setShowDietDetail(!showDietDetail)}
-                  className="text-xs font-bold text-amber-800 dark:text-amber-400 hover:underline flex items-center gap-1"
+                  className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
                 >
-                  <span>{showDietDetail ? "Ocultar detalle de alumnos" : "Ver detalle de alumnos y aulas"}</span>
+                  <span>{showDietDetail ? "Ocultar detalle de alumnos" : "Acceder al detalle de alumnos"}</span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDietDetail ? "rotate-180" : ""}`} />
                 </button>
               </div>
 
-              {/* Píldoras Rápidas de Resumen */}
-              <div className="flex flex-wrap gap-2 pt-3">
-                {Object.entries(consolidatedDietGroups).map(([dietName, pupils]) => (
-                  <div key={dietName} className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-amber-200/80 dark:border-slate-800 flex items-center gap-2 shadow-xs text-xs font-semibold">
-                    <span className="text-slate-700 dark:text-slate-200">{dietName}:</span>
-                    <span className="bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 font-black px-2 py-0.5 rounded-lg text-xs">
-                      {pupils.length}
-                    </span>
+              {/* Tarjetas de Totales por Alérgeno */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4">
+                {allergySummary.map(item => (
+                  <div
+                    key={item.key}
+                    onClick={() => setShowDietDetail(true)}
+                    className="p-3.5 bg-slate-50/70 hover:bg-slate-100/80 dark:bg-slate-850/50 dark:hover:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800 rounded-2xl flex items-center justify-between transition-all cursor-pointer group"
+                    title="Pulsa para acceder a la lista de alumnos de esta dieta"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl shrink-0">{item.icon}</span>
+                      <div>
+                        <div className="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {item.label}
+                        </div>
+                        <div className="text-[10.5px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
+                          <span className="text-pink-600 dark:text-pink-400 font-bold">{item.infantil} Infantil</span>
+                          <span>•</span>
+                          <span className="text-blue-600 dark:text-blue-400 font-bold">{item.primaria} Primaria</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right pl-2">
+                      <span className="text-xl font-black text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {item.total}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -3532,7 +3627,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                       </div>
 
                       {/* PRIMARIA COL */}
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden h-fit border border-blue-100/50 dark:border-blue-950/30 print:shadow-none print:border-slate-300 print:rounded-lg print-card">
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden h-fit border border-blue-100/50 dark:border-blue-955/30 print:shadow-none print:border-slate-300 print:rounded-lg print-card">
                         <div className="bg-blue-50/60 dark:bg-blue-950/20 px-4 py-3 border-b border-blue-100 dark:border-blue-955/30 flex flex-col gap-2.5 print:bg-slate-100 print:border-slate-300">
                           <div className="flex justify-between items-center w-full">
                             <h3 className="font-bold text-blue-700 dark:text-blue-400 text-sm flex gap-2 items-center print:text-black">
@@ -3662,7 +3757,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                       <div className="space-y-3 lg:pl-6 text-left pt-4 lg:pt-0">
                         <h4 className="font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
                           <UserX className="w-4 h-4 text-red-500" />
-                          <span>Ausentes Confirmados - No Preparar ({rosterSpecialsList.ausentes.length})</span>
+                          <span>Ausentes - No preparar ({rosterSpecialsList.ausentes.length})</span>
                         </h4>
                         {rosterSpecialsList.ausentes.length === 0 ? (
                           <div className="py-4 text-center text-slate-400 dark:text-slate-505 italic text-xs">
@@ -3699,7 +3794,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                   <div className="flex items-center gap-2.5">
                     <Info className="w-4 h-4 text-amber-500" />
                     <span className="font-bold text-xs text-slate-800 dark:text-slate-100 uppercase tracking-wider">
-                      Observaciones e Incidencias del Día
+                      Observaciones y Notas / Incidencias del Día
                     </span>
                     {rosterSpecialsList.observaciones.length > 0 ? (
                       <span className="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-extrabold px-2 py-0.5 rounded-full">
