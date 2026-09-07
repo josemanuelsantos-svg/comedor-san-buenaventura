@@ -2092,6 +2092,10 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
 // VISTA COCINA (ADMINISTRACIÓN)
 function AdminView({ registros, selectedDate, setSelectedDate, loading, dataError, onRetry, appSettings, showToast, db }) {
   const [activeTab, setActiveTab] = useState("daily"); // "daily" | "trends" | "monthly"
+  const [kitchenMode, setKitchenMode] = useState("simple"); // "simple" | "detailed"
+  const [showClasses, setShowClasses] = useState(false);
+  const [showDietDetail, setShowDietDetail] = useState(false);
+  const [showObservations, setShowObservations] = useState(false);
   const [historyData, setHistoryData] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [roster, setRoster] = useState([]);
@@ -3258,58 +3262,196 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
             </div>
           )}
 
-          {/* Tarjetas KPI de resumen rápido */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-emerald-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
-              <div>
-                <div className="text-[10px] font-extrabold text-emerald-600 tracking-wider uppercase">Total Platos a Preparar</div>
-                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.total}</div>
+          {/* Barra de Modo de Vista y Acciones Rápidas */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm print:hidden animate-fade-in">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300">Modo de Vista:</span>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKitchenMode("simple");
+                    setShowClasses(false);
+                    setShowDietDetail(false);
+                    setShowObservations(false);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    kitchenMode === "simple"
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Totales Sencillos</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKitchenMode("detailed");
+                    setShowClasses(true);
+                    setShowDietDetail(true);
+                    setShowObservations(true);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    kitchenMode === "detailed"
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Vista Completa</span>
+                </button>
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
-                <span>Fijos presentes: <strong className="text-slate-700 dark:text-slate-200">{Math.max(0, stats.total - stats.totTickets)}</strong></span>
-                <span>Tickets sueltos: <strong className="text-amber-600 dark:text-amber-400">{stats.totTickets}</strong></span>
-              </div>
-              <UtensilsCrossed className="absolute -right-4 -bottom-4 w-14 h-14 text-emerald-500/10 dark:text-emerald-400/5 rotate-12" />
             </div>
 
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-blue-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
-              <div>
-                <div className="text-[10px] font-extrabold text-blue-550 tracking-wider uppercase">Comedor (Menú Caliente)</div>
-                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totComedor}</div>
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
-                <span>Estándar: <strong className="text-slate-700 dark:text-slate-200">{stats.totComedorEstandar}</strong></span>
-                <span>Especiales: <strong className="text-emerald-600 dark:text-emerald-450">{stats.totComedorEspecial}</strong></span>
-              </div>
-              <UtensilsCrossed className="absolute -right-4 -bottom-4 w-14 h-14 text-blue-500/10 dark:text-blue-400/5 rotate-12" />
-            </div>
-            
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-purple-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
-              <div>
-                <div className="text-[10px] font-extrabold text-purple-605 tracking-wider uppercase">Picnics (Excursión)</div>
-                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.totPicnics}</div>
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
-                <span>Estándar: <strong className="text-slate-700 dark:text-slate-200">{stats.totPicnicsEstandar}</strong></span>
-                <span>Especiales: <strong className="text-purple-600 dark:text-purple-450">{stats.totPicnicsEspecial}</strong></span>
-              </div>
-              <Backpack className="absolute -right-4 -bottom-4 w-14 h-14 text-purple-500/10 dark:text-purple-400/5 rotate-12" />
-            </div>
-            
-            <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-indigo-500 relative overflow-hidden interactive-card text-left flex flex-col justify-between">
-              <div>
-                <div className="text-[10px] font-extrabold text-indigo-500 tracking-wider uppercase">Profesores que Comen</div>
-                <div className="text-2xl font-black text-slate-800 dark:text-slate-105 mt-1">{stats.profesoresList ? stats.profesoresList.length : 0}</div>
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex flex-col gap-0.5 relative z-10 font-semibold">
-                <span className="text-indigo-600 dark:text-indigo-400 font-bold text-[10px]">Informativo • (+0 platos)</span>
-                <span className="truncate text-slate-600 dark:text-slate-300">
-                  {stats.profesoresList && stats.profesoresList.length > 0 ? stats.profesoresList.map(p => p.nombre).join(", ") : "Ninguno"}
-                </span>
-              </div>
-              <UserCheck className="absolute -right-4 -bottom-4 w-14 h-14 text-indigo-500/10 dark:text-indigo-400/5 rotate-12" />
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                title="Imprimir resumen de cocina"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Imprimir</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="px-3.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                title="Descargar Excel CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Excel</span>
+              </button>
             </div>
           </div>
+
+          {/* Tarjeta Principal de Totales Esenciales de Cocina (Simple & Limpia) */}
+          <div className="bg-gradient-to-br from-emerald-600 via-teal-700 to-blue-700 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden print:bg-white print:text-black print:border-2 print:border-black print:p-4 animate-fade-in">
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/20 pb-5 print:border-black">
+              <div>
+                <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-100 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm print:text-black print:bg-transparent">
+                  🍽️ TOTAL RACIONES A PREPARAR
+                </span>
+                <div className="flex items-baseline gap-3 mt-2">
+                  <span className="text-5xl md:text-6xl font-black tracking-tight">{stats.total}</span>
+                  <span className="text-xl font-bold text-emerald-100 print:text-black">platos</span>
+                </div>
+              </div>
+
+              {/* Desglose Fijos vs Tickets */}
+              <div className="flex gap-2 text-xs font-bold">
+                <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-2.5 border border-white/10 text-center print:bg-slate-100 print:text-black">
+                  <div className="text-[10px] text-emerald-100 uppercase tracking-wider print:text-slate-600">Alumnos Fijos</div>
+                  <div className="text-xl font-black">{Math.max(0, stats.total - stats.totTickets)}</div>
+                </div>
+                <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-2.5 border border-white/10 text-center print:bg-slate-100 print:text-black">
+                  <div className="text-[10px] text-amber-200 uppercase tracking-wider print:text-slate-600">Tickets Sueltos</div>
+                  <div className="text-xl font-black text-amber-200 print:text-black">{stats.totTickets}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Bloques Clave de Servicio */}
+            <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 pt-5 text-left">
+              {/* Comedor Caliente */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 flex flex-col justify-between print:bg-slate-50 print:text-black print:border-slate-300">
+                <div className="flex justify-between items-center text-xs font-bold text-emerald-100 print:text-slate-700">
+                  <span>🍲 Comedor Caliente</span>
+                  <span className="text-lg font-black text-white print:text-black">{stats.totComedor}</span>
+                </div>
+                <div className="text-[11px] text-emerald-100/90 print:text-slate-600 mt-2 space-y-0.5 font-medium">
+                  <div>Estándar: <strong className="text-white print:text-black">{stats.totComedorEstandar}</strong></div>
+                  <div>Dietas Especiales: <strong className="text-amber-200 print:text-black">{stats.totComedorEspecial}</strong></div>
+                </div>
+              </div>
+
+              {/* Picnics Excursión */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 flex flex-col justify-between print:bg-slate-50 print:text-black print:border-slate-300">
+                <div className="flex justify-between items-center text-xs font-bold text-purple-100 print:text-slate-700">
+                  <span>🎒 Picnics Excursión</span>
+                  <span className="text-lg font-black text-white print:text-black">{stats.totPicnics}</span>
+                </div>
+                <div className="text-[11px] text-purple-100/90 print:text-slate-600 mt-2 space-y-0.5 font-medium">
+                  <div>Estándar: <strong className="text-white print:text-black">{stats.totPicnicsEstandar}</strong></div>
+                  <div>Dietas Especiales: <strong className="text-purple-200 print:text-black">{stats.totPicnicsEspecial}</strong></div>
+                </div>
+              </div>
+
+              {/* Infantil */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 flex flex-col justify-between print:bg-slate-50 print:text-black print:border-slate-300">
+                <div className="flex justify-between items-center text-xs font-bold text-pink-100 print:text-slate-700">
+                  <span>🍼 Infantil</span>
+                  <span className="text-lg font-black text-white print:text-black">{stats.totInf}</span>
+                </div>
+                <div className="text-[11px] text-pink-100/90 print:text-slate-600 mt-2 space-y-0.5 font-medium">
+                  <div>Comedor: <strong className="text-white print:text-black">{stats.totInfComedor}</strong> • Picnic: <strong className="text-white print:text-black">{stats.totInfPicnic}</strong></div>
+                  <div>Tickets: <strong className="text-amber-200 print:text-black">{stats.totInfTickets}</strong></div>
+                </div>
+              </div>
+
+              {/* Primaria */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 flex flex-col justify-between print:bg-slate-50 print:text-black print:border-slate-300">
+                <div className="flex justify-between items-center text-xs font-bold text-blue-100 print:text-slate-700">
+                  <span>🎒 Primaria</span>
+                  <span className="text-lg font-black text-white print:text-black">{stats.totPri}</span>
+                </div>
+                <div className="text-[11px] text-blue-100/90 print:text-slate-600 mt-2 space-y-0.5 font-medium">
+                  <div>Comedor: <strong className="text-white print:text-black">{stats.totPriComedor}</strong> • Picnic: <strong className="text-white print:text-black">{stats.totPriPicnic}</strong></div>
+                  <div>Tickets: <strong className="text-amber-200 print:text-black">{stats.totPriTickets}</strong></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Docentes informativo */}
+            {stats.profesoresList && stats.profesoresList.length > 0 && (
+              <div className="relative z-10 mt-4 pt-3 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold print:text-black print:border-slate-300">
+                <div className="flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-emerald-200 print:text-black" />
+                  <span>Docentes ({stats.profesoresList.length}): <strong>{stats.profesoresList.map(p => p.nombre).join(", ")}</strong></span>
+                </div>
+                <span className="text-[10px] bg-white/15 px-2 py-0.5 rounded-full text-emerald-100 font-bold print:text-slate-600 print:bg-slate-100">
+                  Informativo (+0 platos)
+                </span>
+              </div>
+            )}
+
+            <UtensilsCrossed className="absolute -right-6 -bottom-6 w-40 h-40 text-white/5 rotate-12 pointer-events-none print:hidden" />
+          </div>
+
+          {/* Resumen Compacto y Directo de Dietas Especiales (Si las hay) */}
+          {Object.keys(consolidatedDietGroups).length > 0 && (
+            <div className="bg-amber-50/70 dark:bg-amber-955/20 border border-amber-200/80 dark:border-amber-900/40 rounded-2xl p-4 shadow-sm text-left animate-fade-in print:hidden">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-amber-200/60 dark:border-amber-900/30">
+                <div className="flex items-center gap-2">
+                  <Salad className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                    Dietas Especiales a Preparar: {presentes.length} {presentes.length === 1 ? "ración" : "raciones"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDietDetail(!showDietDetail)}
+                  className="text-xs font-bold text-amber-800 dark:text-amber-400 hover:underline flex items-center gap-1"
+                >
+                  <span>{showDietDetail ? "Ocultar detalle de alumnos" : "Ver detalle de alumnos y aulas"}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDietDetail ? "rotate-180" : ""}`} />
+                </button>
+              </div>
+
+              {/* Píldoras Rápidas de Resumen */}
+              <div className="flex flex-wrap gap-2 pt-3">
+                {Object.entries(consolidatedDietGroups).map(([dietName, pupils]) => (
+                  <div key={dietName} className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-amber-200/80 dark:border-slate-800 flex items-center gap-2 shadow-xs text-xs font-semibold">
+                    <span className="text-slate-700 dark:text-slate-200">{dietName}:</span>
+                    <span className="bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 font-black px-2 py-0.5 rounded-lg text-xs">
+                      {pupils.length}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {!loading && !dataError && registros.length === 0 && (
             <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-10 text-center shadow-sm flex flex-col items-center justify-center gap-3 animate-fade-in">
@@ -3321,484 +3463,301 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
             </div>
           )}
 
-          {/* Matriz de Emplatado Rápido para Cocina (Dietas Especiales y Alérgenos Confirmados) */}
-          {Object.keys(consolidatedDietGroups).length > 0 && (
-            <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-2xl p-4 space-y-3 print:bg-white print:border-slate-400 animate-fade-in">
-              <div className="flex justify-between items-center">
-                <h4 className="font-extrabold text-xs text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-2">
-                  <Salad className="w-4 h-4 text-amber-600" /> Matriz de Emplatado: Dietas Especiales Confirmadas
-                </h4>
-                <span className="text-[10px] font-black bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 px-2.5 py-0.5 rounded-full shadow-sm">
-                  {presentes.length} {presentes.length === 1 ? "ración especial" : "raciones especiales"}
-                </span>
+          {/* ========================================================================= */}
+          {/* SECCIONES DESPLEGABLES BAJO DEMANDA ("Todo lo demás lo veo yo si quiero") */}
+          {/* ========================================================================= */}
+
+          {registros.length > 0 && (
+            <div className="space-y-4">
+
+              {/* 1. ACORDEÓN: DESGLOSE POR AULAS (INFANTIL Y PRIMARIA) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/70 dark:border-slate-800 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowClasses(!showClasses)}
+                  className="w-full px-5 py-4 flex justify-between items-center bg-slate-50/70 dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left print:hidden"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <School className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="font-bold text-xs text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                      Desglose Detallado por Aulas
+                    </span>
+                    <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded-full">
+                      {stats.infantil.length + stats.primaria.length} clases enviadas
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                    <span>{showClasses ? "Ocultar aulas" : "Ver aulas"}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showClasses ? "rotate-180" : ""}`} />
+                  </div>
+                </button>
+
+                {(showClasses || kitchenMode === "detailed") && (
+                  <div className="p-4 border-t border-slate-100 dark:border-slate-800 animate-fade-in print:border-none print:p-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2 print:gap-4">
+                      {/* INFANTIL COL */}
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden h-fit border border-pink-100/50 dark:border-pink-955/30 print:shadow-none print:border-slate-300 print:rounded-lg print-card">
+                        <div className="bg-pink-50/60 dark:bg-pink-950/20 px-4 py-3 border-b border-pink-100 dark:border-pink-955/30 flex flex-col gap-2.5 print:bg-slate-100 print:border-slate-300">
+                          <div className="flex justify-between items-center w-full">
+                            <h3 className="font-bold text-pink-700 dark:text-pink-400 text-sm flex gap-2 items-center print:text-black">
+                              <Shapes className="w-4 h-4 text-pink-500"/> INFANTIL
+                            </h3>
+                            <span className="text-[10px] bg-pink-100 dark:bg-pink-950 text-pink-805 dark:text-pink-300 px-2 py-0.5 rounded-full font-bold">{stats.infantil.length} grupos</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-[10.5px]">
+                            <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-pink-755 dark:text-pink-300 flex items-center gap-1">
+                              🍽️ Menú Estándar: <strong className="font-bold text-pink-900 dark:text-white">{stats.totInfComedorEstandar}</strong>
+                            </span>
+                            <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-pink-755 dark:text-pink-300 flex items-center gap-1">
+                              🥗 Especial: <strong className="font-bold text-pink-900 dark:text-white">{stats.totInfComedorEspecial}</strong>
+                            </span>
+                            <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
+                              🎒 Picnic: <strong className="font-bold text-purple-900 dark:text-white">{stats.totInfPicnic}</strong>
+                            </span>
+                            <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-amber-755 dark:text-amber-300 flex items-center gap-1">
+                              🎫 Tickets: <strong className="font-bold text-amber-900 dark:text-white">{stats.totInfTickets}</strong>
+                            </span>
+                            <span className="bg-pink-600 text-white px-2 py-0.5 rounded-md font-bold flex items-center gap-1 print:bg-pink-650 ml-auto">
+                              Total: <strong>{stats.totInf}</strong>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="divide-y divide-pink-50/50 dark:divide-pink-955/10">
+                          {stats.infantil.length > 0 ? (
+                            stats.infantil.map(renderRow)
+                          ) : (
+                            <div className="p-8 text-center text-slate-400 dark:text-slate-505 text-xs italic">Sin datos de Infantil hoy.</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* PRIMARIA COL */}
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden h-fit border border-blue-100/50 dark:border-blue-950/30 print:shadow-none print:border-slate-300 print:rounded-lg print-card">
+                        <div className="bg-blue-50/60 dark:bg-blue-950/20 px-4 py-3 border-b border-blue-100 dark:border-blue-955/30 flex flex-col gap-2.5 print:bg-slate-100 print:border-slate-300">
+                          <div className="flex justify-between items-center w-full">
+                            <h3 className="font-bold text-blue-700 dark:text-blue-400 text-sm flex gap-2 items-center print:text-black">
+                              <Backpack className="w-4 h-4 text-blue-550"/> PRIMARIA
+                            </h3>
+                            <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-805 dark:text-blue-300 px-2 py-0.5 rounded-full font-bold">{stats.primaria.length} grupos</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-[10.5px]">
+                            <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-blue-755 dark:text-blue-300 flex items-center gap-1">
+                              🍽️ Menú Estándar: <strong className="font-bold text-blue-900 dark:text-white">{stats.totPriComedorEstandar}</strong>
+                            </span>
+                            <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-blue-755 dark:text-blue-300 flex items-center gap-1">
+                              🥗 Especial: <strong className="font-bold text-blue-900 dark:text-white">{stats.totPriComedorEspecial}</strong>
+                            </span>
+                            <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
+                              🎒 Picnic: <strong className="font-bold text-purple-900 dark:text-white">{stats.totPriPicnic}</strong>
+                            </span>
+                            <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-amber-755 dark:text-amber-300 flex items-center gap-1">
+                              🎫 Tickets: <strong className="font-bold text-amber-900 dark:text-white">{stats.totPriTickets}</strong>
+                            </span>
+                            <span className="bg-blue-600 text-white px-2 py-0.5 rounded-md font-bold flex items-center gap-1 print:bg-blue-650 ml-auto">
+                              Total: <strong>{stats.totPri}</strong>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="divide-y divide-blue-50/50 dark:divide-blue-955/10">
+                          {stats.primaria.length > 0 ? (
+                            stats.primaria.map(renderRow)
+                          ) : (
+                            <div className="p-8 text-center text-slate-400 dark:text-slate-505 text-xs italic">Sin datos de Primaria hoy.</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {Object.entries(consolidatedDietGroups).map(([dietName, pupils]) => (
-                  <div key={dietName} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-sm flex flex-col justify-between text-xs">
-                    <div>
-                      <div className="flex justify-between items-start font-bold border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-1.5">
-                        <span className="text-amber-800 dark:text-amber-400">{dietName}</span>
-                        <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-extrabold px-1.5 py-0.5 rounded">
-                          {pupils.length} {pupils.length === 1 ? "ración" : "raciones"}
-                        </span>
+              {/* 2. ACORDEÓN: FICHA COMPLETA DE DIETAS Y ALERGIAS */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/70 dark:border-slate-800 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowDietDetail(!showDietDetail)}
+                  className="w-full px-5 py-4 flex justify-between items-center bg-slate-50/70 dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left print:hidden"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ClipboardCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="font-bold text-xs text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                      Ficha Completa de Dietas, Alérgenos y Ausencias
+                    </span>
+                    <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold px-2 py-0.5 rounded-full">
+                      {presentes.length} raciones especiales
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                    <span>{showDietDetail ? "Ocultar ficha" : "Ver ficha completa"}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showDietDetail ? "rotate-180" : ""}`} />
+                  </div>
+                </button>
+
+                {(showDietDetail || kitchenMode === "detailed") && (
+                  <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-5 animate-fade-in print:border-none print:p-0">
+                    
+                    {/* Matriz de Emplatado por Alergia */}
+                    {Object.keys(consolidatedDietGroups).length > 0 && (
+                      <div className="bg-amber-50/40 dark:bg-amber-955/10 border border-amber-200/60 dark:border-amber-900/30 rounded-2xl p-4 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-extrabold text-xs text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                            <Salad className="w-4 h-4 text-amber-600" /> Matriz de Emplatado: Dietas Confirmadas
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                          {Object.entries(consolidatedDietGroups).map(([dietName, pupils]) => (
+                            <div key={dietName} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-xs text-xs">
+                              <div className="flex justify-between items-start font-bold border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-1.5">
+                                <span className="text-amber-800 dark:text-amber-400">{dietName}</span>
+                                <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-extrabold px-1.5 py-0.5 rounded">
+                                  {pupils.length} {pupils.length === 1 ? "ración" : "raciones"}
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                {pupils.map((p, idx) => (
+                                  <div key={idx} className="flex justify-between items-center text-[11px] text-slate-600 dark:text-slate-400">
+                                    <span className="font-medium truncate mr-2">• {p.nombre}</span>
+                                    <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0 text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                      {p.clase} ({p.etapa})
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        {pupils.map((p, idx) => (
-                          <div key={idx} className="flex justify-between items-center text-[11px] text-slate-600 dark:text-slate-400">
-                            <span className="font-medium truncate mr-2">• {p.nombre}</span>
-                            <span className="font-bold text-slate-700 dark:text-slate-300 shrink-0 text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                              {p.clase} ({p.etapa})
-                            </span>
+                    )}
+
+                    {/* Desglose 3 Columnas: Dietas Blandas / Alergias / Ausencias */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
+                      {/* Dietas Blandas */}
+                      <div className="space-y-3 text-left">
+                        <h4 className="font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
+                          <Salad className="w-4 h-4 text-emerald-500" />
+                          <span>Dietas Blandas ({rosterSpecialsList.dietasBlandas.length})</span>
+                        </h4>
+                        {rosterSpecialsList.dietasBlandas.length === 0 ? (
+                          <div className="py-4 text-center text-slate-400 dark:text-slate-505 italic text-xs">
+                            No hay solicitudes de dieta blanda hoy.
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            {rosterSpecialsList.dietasBlandas.map((dbStudent, idx) => (
+                              <div key={`db-${idx}`} className="p-2.5 bg-emerald-50/40 dark:bg-emerald-955/10 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl flex justify-between items-center text-xs">
+                                <div>
+                                  <span className="font-bold text-emerald-800 dark:text-emerald-400 block">{dbStudent.nombre}</span>
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400">{dbStudent.nota}</span>
+                                </div>
+                                <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-750 dark:text-emerald-305 px-2 py-0.5 rounded text-[9px] uppercase font-bold">
+                                  {dbStudent.clase}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Ausencias de Alumnos Especiales */}
+                      <div className="space-y-3 lg:pl-6 text-left pt-4 lg:pt-0">
+                        <h4 className="font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
+                          <UserX className="w-4 h-4 text-red-500" />
+                          <span>Ausentes Confirmados - No Preparar ({rosterSpecialsList.ausentes.length})</span>
+                        </h4>
+                        {rosterSpecialsList.ausentes.length === 0 ? (
+                          <div className="py-4 text-center text-slate-400 dark:text-slate-505 italic text-xs">
+                            No hay ausencias de alumnos especiales hoy.
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            {rosterSpecialsList.ausentes.map((aStudent, idx) => (
+                              <div key={`aus-${idx}`} className="p-2.5 bg-red-50/30 dark:bg-red-955/10 border border-red-100/50 dark:border-red-900/20 rounded-xl flex justify-between items-center text-xs">
+                                <div>
+                                  <span className="font-bold text-slate-700 dark:text-slate-300 line-through block">{aStudent.nombre}</span>
+                                  <span className="text-[10px] text-slate-400">{aStudent.nota}</span>
+                                </div>
+                                <span className="bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 px-2 py-0.5 rounded text-[9px] uppercase font-bold">
+                                  {aStudent.clase}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. ACORDEÓN: OBSERVACIONES E INCIDENCIAS DEL DÍA */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/70 dark:border-slate-800 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowObservations(!showObservations)}
+                  className="w-full px-5 py-4 flex justify-between items-center bg-slate-50/70 dark:bg-slate-855 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left print:hidden"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Info className="w-4 h-4 text-amber-500" />
+                    <span className="font-bold text-xs text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                      Observaciones e Incidencias del Día
+                    </span>
+                    {rosterSpecialsList.observaciones.length > 0 ? (
+                      <span className="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-extrabold px-2 py-0.5 rounded-full">
+                        {rosterSpecialsList.observaciones.length} {rosterSpecialsList.observaciones.length === 1 ? "nota" : "notas"}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-semibold">Sin notas</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                    <span>{showObservations ? "Ocultar notas" : "Ver notas"}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showObservations ? "rotate-180" : ""}`} />
+                  </div>
+                </button>
+
+                {(showObservations || kitchenMode === "detailed") && (
+                  <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-4 animate-fade-in print:border-none print:p-0 text-left">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        Comentarios e incidencias enviadas por los profesores:
+                      </span>
+                      <a 
+                        href="https://comedorcsb-incidencias.vercel.app/" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-300/40 dark:border-amber-700/40 px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                        <span>Portal de Incidencias</span>
+                        <ExternalLink className="w-3 h-3 opacity-70" />
+                      </a>
+                    </div>
+
+                    {rosterSpecialsList.observaciones.length === 0 ? (
+                      <div className="py-6 text-center text-slate-400 dark:text-slate-505 italic text-xs">
+                        Sin observaciones o incidencias reportadas hoy por el profesorado.
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                        {rosterSpecialsList.observaciones.map((obs, idx) => (
+                          <div key={idx} className="p-3 bg-blue-50/30 dark:bg-blue-955/10 border border-blue-100/50 dark:border-blue-900/20 rounded-xl space-y-1.5 print:bg-white print:border-slate-300">
+                            <div className="flex justify-between items-center text-[10px] font-extrabold text-blue-800 dark:text-blue-400 uppercase tracking-wider">
+                              <span>Aula: {obs.clase} ({obs.etapa})</span>
+                              <span className="text-slate-400 dark:text-slate-500">{obs.profesor}</span>
+                            </div>
+                            <p className="text-xs text-slate-700 dark:text-slate-300 font-bold italic">
+                              "{obs.texto}"
+                            </p>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
+
             </div>
           )}
-          
-          {/* Botonera de Acciones (CSV, Impresión) */}
-          <div className="flex flex-col sm:flex-row gap-2 print:hidden">
-            <button 
-              onClick={handlePrint} 
-              className="flex-1 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white py-3 rounded-xl font-bold shadow-md transition-all flex justify-center items-center gap-2 active:scale-98 text-xs uppercase tracking-wide"
-            >
-              <Printer className="w-4 h-4"/> Imprimir Resumen Cocina
-            </button>
-            <button 
-              onClick={handleExportCSV} 
-              className="flex-1 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 text-blue-650 dark:text-blue-400 border border-slate-200 dark:border-slate-800 py-3 rounded-xl font-bold shadow-sm transition-all flex justify-center items-center gap-2 active:scale-98 text-xs uppercase tracking-wide"
-            >
-              <Download className="w-4 h-4"/> Exportar a Excel (CSV)
-            </button>
-          </div>
-
-          {/* Listado de Clases */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2 print:gap-4">
-            {/* INFANTIL COL */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden h-fit border border-pink-100/50 dark:border-pink-955/30 print:shadow-none print:border-slate-300 print:rounded-lg print-card">
-              <div className="bg-pink-50/60 dark:bg-pink-950/20 px-4 py-3 border-b border-pink-100 dark:border-pink-955/30 flex flex-col gap-2.5 print:bg-slate-100 print:border-slate-300">
-                <div className="flex justify-between items-center w-full">
-                  <h3 className="font-bold text-pink-700 dark:text-pink-400 text-sm flex gap-2 items-center print:text-black">
-                    <Shapes className="w-4 h-4 text-pink-500"/> INFANTIL
-                  </h3>
-                  {loading ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-pink-400" />
-                  ) : (
-                    <span className="text-[10px] bg-pink-100 dark:bg-pink-950 text-pink-805 dark:text-pink-300 px-2 py-0.5 rounded-full font-bold">{stats.infantil.length} grupos</span>
-                  )}
-                </div>
-                {!loading && (
-                  <div className="flex flex-wrap gap-2 text-[10.5px]">
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-pink-755 dark:text-pink-300 flex items-center gap-1">
-                      🍽️ Menú Estándar: <strong className="font-bold text-pink-900 dark:text-white">{stats.totInfComedorEstandar}</strong>
-                    </span>
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-pink-755 dark:text-pink-300 flex items-center gap-1">
-                      🥗 Menú Especial: <strong className="font-bold text-pink-900 dark:text-white">{stats.totInfComedorEspecial}</strong>
-                    </span>
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
-                      🎒 Picnic Estándar: <strong className="font-bold text-purple-900 dark:text-white">{stats.totInfPicnicEstandar}</strong>
-                    </span>
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
-                      🎒 Picnic Especial: <strong className="font-bold text-purple-900 dark:text-white">{stats.totInfPicnicEspecial}</strong>
-                    </span>
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-pink-100/40 dark:border-pink-900/40 font-semibold text-amber-755 dark:text-amber-300 flex items-center gap-1">
-                      🎫 Tickets: <strong className="font-bold text-amber-900 dark:text-white">{stats.totInfTickets}</strong>
-                    </span>
-                    <span className="bg-pink-600 text-white px-2 py-0.5 rounded-md font-bold flex items-center gap-1 print:bg-pink-650 ml-auto">
-                      Total: <strong>{stats.totInf}</strong>
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="divide-y divide-pink-50/50 dark:divide-pink-955/10">
-                {stats.infantil.length > 0 ? (
-                  stats.infantil.map(renderRow)
-                ) : (
-                  <div className="p-8 text-center text-slate-400 dark:text-slate-505 text-xs italic">Sin datos de Infantil hoy.</div>
-                )}
-              </div>
-            </div>
-
-            {/* PRIMARIA COL */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden h-fit border border-blue-100/50 dark:border-blue-950/30 print:shadow-none print:border-slate-300 print:rounded-lg print-card">
-              <div className="bg-blue-50/60 dark:bg-blue-950/20 px-4 py-3 border-b border-blue-100 dark:border-blue-955/30 flex flex-col gap-2.5 print:bg-slate-100 print:border-slate-300">
-                <div className="flex justify-between items-center w-full">
-                  <h3 className="font-bold text-blue-700 dark:text-blue-400 text-sm flex gap-2 items-center print:text-black">
-                    <Backpack className="w-4 h-4 text-blue-550"/> PRIMARIA
-                  </h3>
-                  {loading ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                  ) : (
-                    <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-805 dark:text-blue-300 px-2 py-0.5 rounded-full font-bold">{stats.primaria.length} grupos</span>
-                  )}
-                </div>
-                {!loading && (
-                  <div className="flex flex-wrap gap-2 text-[10.5px]">
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-blue-755 dark:text-blue-300 flex items-center gap-1">
-                      🍽️ Menú Estándar: <strong className="font-bold text-blue-900 dark:text-white">{stats.totPriComedorEstandar}</strong>
-                    </span>
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-blue-755 dark:text-blue-300 flex items-center gap-1">
-                      🥗 Menú Especial: <strong className="font-bold text-blue-900 dark:text-white">{stats.totPriComedorEspecial}</strong>
-                    </span>
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
-                      🎒 Picnic Estándar: <strong className="font-bold text-purple-900 dark:text-white">{stats.totPriPicnicEstandar}</strong>
-                    </span>
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-purple-755 dark:text-purple-300 flex items-center gap-1">
-                      🎒 Picnic Especial: <strong className="font-bold text-purple-900 dark:text-white">{stats.totPriPicnicEspecial}</strong>
-                    </span>
-                    <span className="bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-md border border-blue-100/40 dark:border-blue-900/40 font-semibold text-amber-755 dark:text-amber-300 flex items-center gap-1">
-                      🎫 Tickets: <strong className="font-bold text-amber-900 dark:text-white">{stats.totPriTickets}</strong>
-                    </span>
-                    <span className="bg-blue-600 text-white px-2 py-0.5 rounded-md font-bold flex items-center gap-1 print:bg-blue-650 ml-auto">
-                      Total: <strong>{stats.totPri}</strong>
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="divide-y divide-blue-50/50 dark:divide-blue-955/10">
-                {stats.primaria.length > 0 ? (
-                  stats.primaria.map(renderRow)
-                ) : (
-                  <div className="p-8 text-center text-slate-400 dark:text-slate-505 text-xs italic">Sin datos de Primaria hoy.</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Panel de Incidencias y Dietas Especiales Consolidado */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6 print:border-slate-300 break-inside-avoid print:mt-4 print-card animate-fade-in">
-            <div className="bg-gradient-to-r from-blue-50/60 to-purple-50/60 dark:from-blue-955/20 dark:to-purple-955/20 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 print:bg-slate-100 print:border-slate-300">
-              <div>
-                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex gap-2 items-center print:text-black">
-                  <ClipboardCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <span>Control de Dietas Especiales e Incidencias Diarias</span>
-                </h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 print:text-slate-600">
-                  Consolidado diario para Cocina cruzado con el Roster de alumnos
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <a 
-                  href="https://comedorcsb-incidencias.vercel.app/" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-300/40 dark:border-amber-700/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 print:hidden"
-                  title="Abrir portal de Gestión de Incidencias en nueva pestaña"
-                >
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Gestión de Incidencias</span>
-                  <ExternalLink className="w-3 h-3 opacity-70" />
-                </a>
-                <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider print:border print:border-slate-400 print:text-black print:bg-transparent">
-                  Hoy
-                </span>
-              </div>
-            </div>
-
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
-              
-              {/* COL 1: DIETAS BLANDAS */}
-              <div className="space-y-4 text-left">
-                <h4 className="font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
-                  <Salad className="w-4 h-4 text-emerald-500" />
-                  <span>Dietas Blandas ({rosterSpecialsList.dietasBlandas.length})</span>
-                </h4>
-                {rosterSpecialsList.dietasBlandas.length === 0 ? (
-                  <div className="py-6 text-center text-slate-400 dark:text-slate-505 italic text-xs">
-                    No hay solicitudes de dieta blanda hoy.
-                  </div>
-                ) : (
-                  <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
-                    {/* INFANTIL */}
-                    {dietasBlandasInfantil.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-[10px] font-extrabold text-pink-600 dark:text-pink-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-pink-100/30 dark:border-pink-900/20 pb-1">
-                          <Shapes className="w-3.5 h-3.5 text-pink-500" />
-                          <span>🍼 Infantil ({dietasBlandasInfantil.length})</span>
-                        </div>
-                        <div className="space-y-2">
-                          {dietasBlandasInfantil.map((dbStudent, idx) => (
-                            <div key={`db-inf-${idx}`} className="p-3 bg-emerald-50/40 dark:bg-emerald-955/10 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl flex flex-col gap-0.5 print:bg-white print:border-slate-300">
-                              <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
-                                <span className="text-emerald-800 dark:text-emerald-400">{dbStudent.nombre}</span>
-                                <div className="flex gap-1 items-center">
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-extrabold ${
-                                    dbStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
-                                    dbStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
-                                    'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
-                                  }`}>
-                                    {dbStudent.option === 'picnic' ? 'Picnic' : dbStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
-                                  </span>
-                                  <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-750 dark:text-emerald-305 px-2 py-0.5 rounded text-[9px] uppercase tracking-wide font-bold">
-                                    {dbStudent.clase}
-                                  </span>
-                                </div>
-                              </div>
-                              <span className="text-[10.5px] text-slate-550 dark:text-slate-400 italic font-semibold">
-                                {dbStudent.nota}
-                              </span>
-                              {dbStudent.esManual && (
-                                <span className="text-[8.5px] text-slate-455 dark:text-slate-500 font-extrabold uppercase mt-1">
-                                  Añadido puntual
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* PRIMARIA */}
-                    {dietasBlandasPrimaria.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-blue-100/30 dark:border-blue-900/20 pb-1">
-                          <Backpack className="w-3.5 h-3.5 text-blue-500" />
-                          <span>🎒 Primaria ({dietasBlandasPrimaria.length})</span>
-                        </div>
-                        <div className="space-y-2">
-                          {dietasBlandasPrimaria.map((dbStudent, idx) => (
-                            <div key={`db-pri-${idx}`} className="p-3 bg-emerald-50/40 dark:bg-emerald-955/10 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl flex flex-col gap-0.5 print:bg-white print:border-slate-300">
-                              <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
-                                <span className="text-emerald-800 dark:text-emerald-400">{dbStudent.nombre}</span>
-                                <div className="flex gap-1 items-center">
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-extrabold ${
-                                    dbStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
-                                    dbStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
-                                    'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
-                                  }`}>
-                                    {dbStudent.option === 'picnic' ? 'Picnic' : dbStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
-                                  </span>
-                                  <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-750 dark:text-emerald-305 px-2 py-0.5 rounded text-[9px] uppercase tracking-wide font-bold">
-                                    {dbStudent.clase}
-                                  </span>
-                                </div>
-                              </div>
-                              <span className="text-[10.5px] text-slate-550 dark:text-slate-400 italic font-semibold">
-                                {dbStudent.nota}
-                              </span>
-                              {dbStudent.esManual && (
-                                <span className="text-[8.5px] text-slate-455 dark:text-slate-500 font-extrabold uppercase mt-1">
-                                  Añadido puntual
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* COL 2: ALERGIAS Y DIETAS ESPECIALES */}
-              <div className="space-y-4 lg:pl-6 text-left pt-4 lg:pt-0">
-                <h4 className="font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
-                  <AlertTriangle className="w-4 h-4 text-amber-500" />
-                  <span>Alergias y Especiales</span>
-                </h4>
-                
-                <div className="space-y-4">
-                  {/* PRESENTES */}
-                  <div className="space-y-2">
-                    <div className="text-[10px] font-extrabold text-slate-400 dark:text-slate-505 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800/60 pb-1">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                      <span>Comen Hoy ({rosterSpecialsList.presentes.length})</span>
-                    </div>
-                    {rosterSpecialsList.presentes.length === 0 ? (
-                      <div className="py-2 text-slate-400 dark:text-slate-505 italic text-xs">
-                        Ningún alumno especial presente hoy.
-                      </div>
-                    ) : (
-                      <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
-                        {/* PRESENTES INFANTIL */}
-                        {presentesInfantil.length > 0 && (
-                          <div className="space-y-1.5">
-                            <div className="text-[9px] font-extrabold text-pink-650 dark:text-pink-400 uppercase tracking-wider flex items-center gap-1">
-                              <Shapes className="w-3 h-3 text-pink-500" />
-                              <span>🍼 Infantil ({presentesInfantil.length})</span>
-                            </div>
-                            {presentesInfantil.map((pStudent, idx) => (
-                              <div key={`pres-inf-${idx}`} className="p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-lg flex flex-col gap-0.5 print:bg-white print:border-slate-300">
-                                <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
-                                  <span className="flex items-center gap-1">
-                                    {pStudent.nombre}
-                                    {pStudent.dietaBlanda && (
-                                      <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-805 dark:text-emerald-305 px-1 py-0.1 rounded text-[8px] uppercase font-bold scale-90">Blanda</span>
-                                    )}
-                                  </span>
-                                  <div className="flex gap-1 items-center">
-                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
-                                      pStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
-                                      pStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
-                                      'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
-                                    }`}>
-                                      {pStudent.option === 'picnic' ? 'Picnic' : pStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
-                                    </span>
-                                    <span className="bg-blue-50 dark:bg-blue-955/35 text-blue-700 dark:text-blue-400 px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                      {pStudent.clase}
-                                    </span>
-                                  </div>
-                                </div>
-                                <span className="text-[10px] text-slate-550 dark:text-slate-400 font-bold">
-                                  {pStudent.nota}
-                                </span>
-                                {pStudent.esManual && (
-                                  <span className="text-[8.5px] text-slate-400 dark:text-slate-500 font-extrabold uppercase mt-0.5">
-                                    Añadido puntual
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* PRESENTES PRIMARIA */}
-                        {presentesPrimaria.length > 0 && (
-                          <div className="space-y-1.5">
-                            <div className="text-[9px] font-extrabold text-blue-650 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
-                              <Backpack className="w-3 h-3 text-blue-500" />
-                              <span>🎒 Primaria ({presentesPrimaria.length})</span>
-                            </div>
-                            {presentesPrimaria.map((pStudent, idx) => (
-                              <div key={`pres-pri-${idx}`} className="p-2.5 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-lg flex flex-col gap-0.5 print:bg-white print:border-slate-300">
-                                <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200 text-xs">
-                                  <span className="flex items-center gap-1">
-                                    {pStudent.nombre}
-                                    {pStudent.dietaBlanda && (
-                                      <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-805 dark:text-emerald-305 px-1 py-0.1 rounded text-[8px] uppercase font-bold scale-90">Blanda</span>
-                                    )}
-                                  </span>
-                                  <div className="flex gap-1 items-center">
-                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
-                                      pStudent.option === 'picnic' ? 'bg-purple-100 dark:bg-purple-955/20 text-purple-700 dark:text-purple-400' :
-                                      pStudent.option === 'ticket' ? 'bg-amber-100 dark:bg-amber-955/20 text-amber-700 dark:text-amber-405' :
-                                      'bg-blue-100 dark:bg-blue-955/20 text-blue-755 dark:text-blue-400'
-                                    }`}>
-                                      {pStudent.option === 'picnic' ? 'Picnic' : pStudent.option === 'ticket' ? 'Ticket' : 'Comedor'}
-                                    </span>
-                                    <span className="bg-blue-50 dark:bg-blue-955/35 text-blue-700 dark:text-blue-400 px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                      {pStudent.clase}
-                                    </span>
-                                  </div>
-                                </div>
-                                <span className="text-[10px] text-slate-550 dark:text-slate-400 font-bold">
-                                  {pStudent.nota}
-                                </span>
-                                {pStudent.esManual && (
-                                  <span className="text-[8.5px] text-slate-400 dark:text-slate-500 font-extrabold uppercase mt-0.5">
-                                    Añadido puntual
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* AUSENTES */}
-                  <div className="space-y-2 border-t border-dashed border-slate-100 dark:border-slate-800 pt-3">
-                    <div className="text-[10px] font-extrabold text-slate-400 dark:text-slate-505 uppercase tracking-wider flex items-center gap-1.5 pb-1">
-                      <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                      <span>Ausentes - No preparar ({rosterSpecialsList.ausentes.length})</span>
-                    </div>
-                    {rosterSpecialsList.ausentes.length === 0 ? (
-                      <div className="py-2 text-slate-400 dark:text-slate-505 italic text-xs">
-                        No hay ausencias de alumnos especiales hoy.
-                      </div>
-                    ) : (
-                      <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
-                        {/* AUSENTES INFANTIL */}
-                        {ausentesInfantil.length > 0 && (
-                          <div className="space-y-1.5">
-                            <div className="text-[9px] font-extrabold text-pink-650 dark:text-pink-400 uppercase tracking-wider flex items-center gap-1">
-                              <Shapes className="w-3 h-3 text-pink-500" />
-                              <span>🍼 Infantil ({ausentesInfantil.length})</span>
-                            </div>
-                            {ausentesInfantil.map((aStudent, idx) => (
-                              <div key={`aus-inf-${idx}`} className="p-2 bg-slate-50/50 dark:bg-slate-850/40 border border-slate-100/50 dark:border-slate-800/60 rounded-lg flex justify-between items-center opacity-70 print:bg-white print:border-slate-200 print:opacity-100">
-                                <div className="flex flex-col text-left">
-                                  <span className="font-bold text-slate-655 dark:text-slate-400 text-xs line-through print:no-underline">{aStudent.nombre}</span>
-                                  <span className="text-[9.5px] text-slate-400 dark:text-slate-505 font-semibold">{aStudent.nota}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="bg-red-50 dark:bg-red-955/20 text-red-650 dark:text-red-400 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase">
-                                    Ausente
-                                  </span>
-                                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-455 px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                    {aStudent.clase}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* AUSENTES PRIMARIA */}
-                        {ausentesPrimaria.length > 0 && (
-                          <div className="space-y-1.5">
-                            <div className="text-[9px] font-extrabold text-blue-650 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
-                              <Backpack className="w-3 h-3 text-blue-500" />
-                              <span>🎒 Primaria ({ausentesPrimaria.length})</span>
-                            </div>
-                            {ausentesPrimaria.map((aStudent, idx) => (
-                              <div key={`aus-pri-${idx}`} className="p-2 bg-slate-50/50 dark:bg-slate-850/40 border border-slate-100/50 dark:border-slate-800/60 rounded-lg flex justify-between items-center opacity-70 print:bg-white print:border-slate-200 print:opacity-100">
-                                <div className="flex flex-col text-left">
-                                  <span className="font-bold text-slate-655 dark:text-slate-400 text-xs line-through print:no-underline">{aStudent.nombre}</span>
-                                  <span className="text-[9.5px] text-slate-400 dark:text-slate-505 font-semibold">{aStudent.nota}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="bg-red-50 dark:bg-red-955/20 text-red-650 dark:text-red-400 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase">
-                                    Ausente
-                                  </span>
-                                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-455 px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                    {aStudent.clase}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* COL 3: OBSERVACIONES Y COMENTARIOS */}
-              <div className="space-y-4 lg:pl-6 text-left pt-4 lg:pt-0">
-                <h4 className="font-bold text-slate-700 dark:text-slate-200 text-xs flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
-                  <Info className="w-4 h-4 text-blue-500" />
-                  <span>Observaciones y Notas</span>
-                </h4>
-                {rosterSpecialsList.observaciones.length === 0 ? (
-                  <div className="py-6 text-center text-slate-400 dark:text-slate-505 italic text-xs">
-                    Sin observaciones o incidencias reportadas hoy.
-                  </div>
-                ) : (
-                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                    {rosterSpecialsList.observaciones.map((obs, idx) => (
-                      <div key={idx} className="p-3 bg-blue-50/30 dark:bg-blue-955/10 border border-blue-100/50 dark:border-blue-900/20 rounded-xl space-y-1.5 print:bg-white print:border-slate-300">
-                        <div className="flex justify-between items-center text-[10px] font-extrabold text-blue-800 dark:text-blue-400 uppercase tracking-wider">
-                          <span>Aula: {obs.clase} ({obs.etapa})</span>
-                          <span className="text-slate-400 dark:text-slate-500">{obs.profesor}</span>
-                        </div>
-                        <p className="text-xs text-slate-700 dark:text-slate-300 font-bold italic">
-                          "{obs.texto}"
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-            </div>
-          </div>
         </>
       ) : (
         /* GRÁFICO HISTORIAL DE TENDENCIAS (SVG Nativo leyendo de totales_diarios) */
