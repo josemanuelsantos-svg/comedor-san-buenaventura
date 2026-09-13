@@ -52,6 +52,8 @@ const DEFAULT_SETTINGS = {
   letras: ["A", "B", "C"],
   cursosInfantil: ["1º", "2º", "3º"],
   cursosPrimaria: ["1º", "2º", "3º", "4º", "5º", "6º"],
+  menuUrl: "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing",
+  incidenciasUrl: "https://comedorcsb-incidencias.vercel.app/",
   actividades: [
     {
       id: "catequesis",
@@ -403,9 +405,20 @@ export default function App() {
                Red: {isOnline ? <span className="font-bold text-green-400 font-mono">CONECTADO</span> : <span className="font-bold text-orange-400 font-mono">SIN CONEXIÓN</span>}
              </span>
           </div>
-          <div className="flex gap-4 items-center font-bold">
+          <div className="flex flex-wrap gap-3 md:gap-4 items-center font-bold text-[10px]">
             <a 
-              href="https://comedorcsb-incidencias.vercel.app/" 
+              href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5"
+              title="Abrir Menú del Mes en Google Drive"
+            >
+              <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Menú del Mes</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </a>
+            <a 
+              href={appSettings?.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/"} 
               target="_blank" 
               rel="noopener noreferrer" 
               className="text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1.5"
@@ -503,7 +516,10 @@ export default function App() {
                   <li><strong>Alergias y dietas:</strong> Pulsa [COME HOY] o [FALTA] en cada tarjeta de alumno.</li>
                   <li><strong>Enviar a cocina:</strong> Pulsa el botón verde inferior. El registro se guarda en la nube al instante.</li>
                   <li>
-                    <strong>Gestión de Incidencias:</strong> Para reportar o consultar incidencias operativas del comedor escolar, accede al <a href="https://comedorcsb-incidencias.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-bold underline inline-flex items-center gap-0.5">Portal de Incidencias <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
+                    <strong>Menú del Mes:</strong> Consulta la programación de comidas en <a href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-bold underline inline-flex items-center gap-0.5">Menú del Mes (Drive) <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
+                  </li>
+                  <li>
+                    <strong>Gestión de Incidencias:</strong> Para reportar o consultar incidencias operativas del comedor escolar, accede al <a href={appSettings?.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/"} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-bold underline inline-flex items-center gap-0.5">Portal de Incidencias <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
                   </li>
                 </ul>
               </div>
@@ -1244,6 +1260,29 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
       </div>
       
       <div className="p-6">
+        {/* Acceso directo al Menú del Mes */}
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-emerald-50/60 dark:bg-emerald-955/20 border border-emerald-200/70 dark:border-emerald-900/40 px-4 py-3 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+              <UtensilsCrossed className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="block text-xs font-black text-slate-800 dark:text-slate-100">Menú Escolar del Mes</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">Consulta los platos y comidas programadas para hoy</span>
+            </div>
+          </div>
+          <a 
+            href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
+            title="Abrir el menú del mes en Google Drive"
+          >
+            <span>Ver Menú del Mes</span>
+            <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+          </a>
+        </div>
+
         {/* Cabecera del paso */}
         <div className="flex justify-between items-center mb-6">
             <div className="flex gap-2 text-slate-400 dark:text-slate-505 font-bold text-xs uppercase tracking-wider items-center">
@@ -3403,7 +3442,18 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
               </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+              <a
+                href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-955/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
+                title="Abrir Menú del Mes en Google Drive"
+              >
+                <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Menú del Mes</span>
+                <ExternalLink className="w-3 h-3 opacity-70" />
+              </a>
               <button
                 type="button"
                 onClick={handlePrint}
@@ -3997,6 +4047,8 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
   const [letrasInput, setLetrasInput] = useState(settings.letras.join(", "));
   const [cursosInfantilInput, setCursosInfantilInput] = useState(settings.cursosInfantil.join(", "));
   const [cursosPrimariaInput, setCursosPrimariaInput] = useState(settings.cursosPrimaria.join(", "));
+  const [menuUrlInput, setMenuUrlInput] = useState(settings.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing");
+  const [incidenciasUrlInput, setIncidenciasUrlInput] = useState(settings.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/");
 
   // Roster permanente de alumnos
   const [roster, setRoster] = useState([]);
@@ -4063,7 +4115,9 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
       maxComensales: Number(maxComensales) || 35,
       letras,
       cursosInfantil,
-      cursosPrimaria
+      cursosPrimaria,
+      menuUrl: menuUrlInput.trim() || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing",
+      incidenciasUrl: incidenciasUrlInput.trim() || "https://comedorcsb-incidencias.vercel.app/"
     });
     showToast("Ajustes generales guardados correctamente.", "success");
   };
@@ -4352,23 +4406,60 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
             />
           </div>
 
-          {/* Acceso a Gestión de Incidencias */}
-          <div className="bg-amber-50/50 dark:bg-amber-955/15 border border-amber-200/80 dark:border-amber-900/40 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-              <h4 className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600" /> Gestión de Incidencias en el Comedor
-              </h4>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Accede al portal oficial para registrar, consultar y gestionar incidencias del comedor.</p>
+          {/* Enlace al Menú del Mes */}
+          <div className="bg-emerald-50/50 dark:bg-emerald-955/15 border border-emerald-200/80 dark:border-emerald-900/40 p-4 rounded-2xl space-y-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
+                  <UtensilsCrossed className="w-4 h-4 text-emerald-600" /> Menú Escolar del Mes (Enlace / PDF)
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Enlace directo al documento o imagen del menú mensual alojado en Google Drive o la web.</p>
+              </div>
+              <a 
+                href={menuUrlInput || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0 active:scale-95"
+              >
+                <span>Probar Enlace</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
-            <a 
-              href="https://comedorcsb-incidencias.vercel.app/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0 active:scale-95"
-            >
-              <span>Abrir Incidencias</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            <input 
+              type="url" 
+              value={menuUrlInput} 
+              onChange={e => setMenuUrlInput(e.target.value)} 
+              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl outline-none text-xs font-mono text-slate-700 dark:text-slate-200"
+              placeholder="https://drive.google.com/file/d/..."
+            />
+          </div>
+
+          {/* Acceso a Gestión de Incidencias */}
+          <div className="bg-amber-50/50 dark:bg-amber-955/15 border border-amber-200/80 dark:border-amber-900/40 p-4 rounded-2xl space-y-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" /> Gestión de Incidencias en el Comedor
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Accede al portal oficial para registrar, consultar y gestionar incidencias del comedor.</p>
+              </div>
+              <a 
+                href={incidenciasUrlInput || "https://comedorcsb-incidencias.vercel.app/"} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0 active:scale-95"
+              >
+                <span>Abrir Incidencias</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+            <input 
+              type="url" 
+              value={incidenciasUrlInput} 
+              onChange={e => setIncidenciasUrlInput(e.target.value)} 
+              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 rounded-xl outline-none text-xs font-mono text-slate-700 dark:text-slate-200"
+              placeholder="https://comedorcsb-incidencias.vercel.app/"
+            />
           </div>
 
           <button 
