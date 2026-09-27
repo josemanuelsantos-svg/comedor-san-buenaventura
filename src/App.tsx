@@ -2290,6 +2290,38 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
     const profesoresInfantil = profesoresList.filter(p => p.etapa === "Infantil");
     const profesoresPrimaria = profesoresList.filter(p => p.etapa === "Primaria");
 
+    // Totales de cada curso en Infantil
+    const cursosInfOrder = [...(appSettings?.cursosInfantil || ["1º", "2º", "3º"])];
+    const cursosInfMap = {};
+    cursosInfOrder.forEach(c => { cursosInfMap[c] = 0; });
+    infantil.forEach(r => {
+      const f = Number(r.fijos) || 0;
+      const tk = Number(r.tickets) || 0;
+      const t = f + tk;
+      if (cursosInfMap[r.curso] === undefined) {
+        cursosInfMap[r.curso] = 0;
+        cursosInfOrder.push(r.curso);
+      }
+      cursosInfMap[r.curso] += t;
+    });
+    const totalesCursosInfantil = cursosInfOrder.map(c => ({ curso: c, total: cursosInfMap[c] || 0 }));
+
+    // Totales de cada curso en Primaria
+    const cursosPriOrder = [...(appSettings?.cursosPrimaria || ["1º", "2º", "3º", "4º", "5º", "6º"])];
+    const cursosPriMap = {};
+    cursosPriOrder.forEach(c => { cursosPriMap[c] = 0; });
+    primaria.forEach(r => {
+      const f = Number(r.fijos) || 0;
+      const tk = Number(r.tickets) || 0;
+      const t = f + tk;
+      if (cursosPriMap[r.curso] === undefined) {
+        cursosPriMap[r.curso] = 0;
+        cursosPriOrder.push(r.curso);
+      }
+      cursosPriMap[r.curso] += t;
+    });
+    const totalesCursosPrimaria = cursosPriOrder.map(c => ({ curso: c, total: cursosPriMap[c] || 0 }));
+
     return { 
       totInfComedor,
       totPriComedor,
@@ -2321,9 +2353,11 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
       totPicnicsEspecial: totInfPicnicEspecial + totPriPicnicEspecial,
       profesoresList,
       profesoresInfantil,
-      profesoresPrimaria
+      profesoresPrimaria,
+      totalesCursosInfantil,
+      totalesCursosPrimaria
     };
-  }, [registros]);
+  }, [registros, appSettings]);
 
   // Recalcular y guardar totales_diarios en caliente (Mejora 3)
   useEffect(() => {
@@ -3468,41 +3502,81 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
             </div>
           </div>
 
-          {/* Tarjeta Principal de Totales Esenciales de Cocina (Super Limpia) */}
+          {/* Tarjeta Principal de Totales Esenciales de Cocina (Vista Inmediata: Total, Etapas y Cursos) */}
           <div className="bg-gradient-to-br from-emerald-600 via-teal-700 to-blue-700 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden print:bg-white print:text-black print:border-2 print:border-black print:p-4 animate-fade-in text-left">
+            {/* Bloque 1: Total General y Totales por Etapa */}
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/20 pb-5 print:border-black">
               <div>
                 <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-100 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm print:text-black print:bg-transparent">
-                  🍽️ TOTAL COMIDAS A PREPARAR
+                  🍽️ TOTAL COMEDOR
                 </span>
                 <div className="flex items-baseline gap-3 mt-2">
                   <span className="text-5xl md:text-6xl font-black tracking-tight">{stats.total}</span>
-                  <span className="text-xl font-bold text-emerald-100 print:text-black">comidas en total</span>
+                  <span className="text-xl font-bold text-emerald-100 print:text-black">niños en total</span>
                 </div>
               </div>
 
-              {/* Diferenciado ÚNICAMENTE por etapa */}
+              {/* Diferenciado por etapa */}
               <div className="flex gap-3 text-xs font-bold w-full md:w-auto">
                 <div className="flex-1 md:flex-none bg-white/15 backdrop-blur-sm rounded-2xl px-5 py-3 border border-white/10 text-center print:bg-slate-100 print:text-black min-w-[130px]">
                   <div className="text-[11px] text-pink-100 uppercase tracking-wider font-extrabold print:text-slate-600 flex items-center justify-center gap-1">
                     <span>🍼 Infantil</span>
                   </div>
-                  <div className="text-2xl font-black mt-0.5">{stats.totInf}</div>
-                  <div className="text-[10px] text-emerald-100/80 font-medium">comidas</div>
+                  <div className="text-2xl md:text-3xl font-black mt-0.5">{stats.totInf}</div>
+                  <div className="text-[10px] text-emerald-100/80 font-medium">niños</div>
                 </div>
 
                 <div className="flex-1 md:flex-none bg-white/15 backdrop-blur-sm rounded-2xl px-5 py-3 border border-white/10 text-center print:bg-slate-100 print:text-black min-w-[130px]">
                   <div className="text-[11px] text-blue-100 uppercase tracking-wider font-extrabold print:text-slate-600 flex items-center justify-center gap-1">
                     <span>🎒 Primaria</span>
                   </div>
-                  <div className="text-2xl font-black mt-0.5">{stats.totPri}</div>
-                  <div className="text-[10px] text-emerald-100/80 font-medium">comidas</div>
+                  <div className="text-2xl md:text-3xl font-black mt-0.5">{stats.totPri}</div>
+                  <div className="text-[10px] text-emerald-100/80 font-medium">niños</div>
                 </div>
               </div>
             </div>
 
-            {/* Fila Operativa Rápida: Docentes & Picnics */}
-            <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-4 text-xs font-medium print:text-black print:border-slate-300">
+            {/* Bloque 2: Desglose Inmediato de Cada Curso (Infantil y Primaria) */}
+            <div className="relative z-10 pt-4 pb-2 border-b border-white/15 print:border-black space-y-3">
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-100/90 print:text-slate-700 flex items-center gap-1.5">
+                <span>📊 Total por Curso:</span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* Cursos Infantil */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/10 print:bg-slate-50 print:border-slate-300">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-pink-200 print:text-slate-600 mb-2 flex items-center justify-between">
+                    <span>🍼 Infantil ({stats.totInf} niños)</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {stats.totalesCursosInfantil.map(c => (
+                      <div key={c.curso} className="bg-white/10 rounded-xl py-1.5 px-2 text-center border border-white/10 print:bg-white print:border-slate-200 shadow-xs">
+                        <span className="text-[10px] font-bold text-pink-100 print:text-slate-600 block">{c.curso} Inf</span>
+                        <span className="text-lg md:text-xl font-black text-white print:text-black block">{c.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cursos Primaria */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/10 print:bg-slate-50 print:border-slate-300">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-200 print:text-slate-600 mb-2 flex items-center justify-between">
+                    <span>🎒 Primaria ({stats.totPri} niños)</span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {stats.totalesCursosPrimaria.map(c => (
+                      <div key={c.curso} className="bg-white/10 rounded-xl py-1.5 px-2 text-center border border-white/10 print:bg-white print:border-slate-200 shadow-xs">
+                        <span className="text-[10px] font-bold text-blue-100 print:text-slate-600 block">{c.curso} Pri</span>
+                        <span className="text-lg md:text-xl font-black text-white print:text-black block">{c.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bloque 3: Fila Operativa Rápida: Docentes & Picnics */}
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-3 text-xs font-medium print:text-black print:border-slate-300">
               <div className="flex flex-wrap items-center gap-3">
                 {stats.profesoresList && stats.profesoresList.length > 0 && (
                   <div className="flex items-center gap-1.5 text-emerald-100 print:text-black">
@@ -3534,69 +3608,6 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
 
             <UtensilsCrossed className="absolute -right-6 -bottom-6 w-40 h-40 text-white/5 rotate-12 pointer-events-none print:hidden" />
           </div>
-
-          {/* Resumen de Alergias y Dietas Especiales (Totales por tipo diferenciados únicamente por etapa) */}
-          {allergySummary.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm text-left animate-fade-in print:hidden">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Salad className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
-                      Alérgicos y Dietas Especiales
-                    </h3>
-                    <span className="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full text-xs">
-                      {presentes.length} {presentes.length === 1 ? "comensal" : "comensales"} en total
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-                    Diferenciados por etapa: <strong className="text-pink-600 dark:text-pink-400">{presentesInfantil.length} Infantil</strong> • <strong className="text-blue-600 dark:text-blue-400">{presentesPrimaria.length} Primaria</strong>
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowDietDetail(!showDietDetail)}
-                  className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
-                >
-                  <span>{showDietDetail ? "Ocultar detalle de alumnos" : "Acceder al detalle de alumnos"}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDietDetail ? "rotate-180" : ""}`} />
-                </button>
-              </div>
-
-              {/* Tarjetas de Totales por Alérgeno */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4">
-                {allergySummary.map(item => (
-                  <div
-                    key={item.key}
-                    onClick={() => setShowDietDetail(true)}
-                    className="p-3.5 bg-slate-50/70 hover:bg-slate-100/80 dark:bg-slate-850/50 dark:hover:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800 rounded-2xl flex items-center justify-between transition-all cursor-pointer group"
-                    title="Pulsa para acceder a la lista de alumnos de esta dieta"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-xl shrink-0">{item.icon}</span>
-                      <div>
-                        <div className="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {item.label}
-                        </div>
-                        <div className="text-[10.5px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
-                          <span className="text-pink-600 dark:text-pink-400 font-bold">{item.infantil} Infantil</span>
-                          <span>•</span>
-                          <span className="text-blue-600 dark:text-blue-400 font-bold">{item.primaria} Primaria</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right pl-2">
-                      <span className="text-xl font-black text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {item.total}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {!loading && !dataError && registros.length === 0 && (
             <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-10 text-center shadow-sm flex flex-col items-center justify-center gap-3 animate-fade-in">
@@ -3741,6 +3752,55 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                 {(showDietDetail || kitchenMode === "detailed") && (
                   <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-5 animate-fade-in print:border-none print:p-0">
                     
+                    {/* Resumen de Alergias y Dietas Especiales (Totales por tipo diferenciados únicamente por etapa) */}
+                    {allergySummary.length > 0 && (
+                      <div className="bg-slate-50/80 dark:bg-slate-850/50 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800">
+                          <div>
+                            <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+                              <Salad className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                              <span>Resumen de Alérgenos y Dietas (Totales por Tipo)</span>
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                              Diferenciados por etapa: <strong className="text-pink-600 dark:text-pink-400">{presentesInfantil.length} Infantil</strong> • <strong className="text-blue-600 dark:text-blue-400">{presentesPrimaria.length} Primaria</strong>
+                            </p>
+                          </div>
+                          <span className="text-[11px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full">
+                            {presentes.length} {presentes.length === 1 ? "comensal" : "comensales"} en total
+                          </span>
+                        </div>
+
+                        {/* Tarjetas de Totales por Alérgeno */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                          {allergySummary.map(item => (
+                            <div
+                              key={item.key}
+                              className="p-3 bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 rounded-xl flex items-center justify-between shadow-xs"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-xl shrink-0">{item.icon}</span>
+                                <div>
+                                  <div className="font-bold text-xs text-slate-800 dark:text-slate-200">
+                                    {item.label}
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-pink-600 dark:text-pink-400 font-bold">{item.infantil} Infantil</span>
+                                    <span>•</span>
+                                    <span className="text-blue-600 dark:text-blue-400 font-bold">{item.primaria} Primaria</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right pl-2">
+                                <span className="text-xl font-black text-slate-900 dark:text-white">
+                                  {item.total}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Matriz de Emplatado por Alergia */}
                     {Object.keys(consolidatedDietGroups).length > 0 && (
                       <div className="bg-amber-50/40 dark:bg-amber-955/10 border border-amber-200/60 dark:border-amber-900/30 rounded-2xl p-4 space-y-3">
