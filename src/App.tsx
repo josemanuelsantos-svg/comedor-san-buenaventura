@@ -2290,10 +2290,17 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
     const profesoresInfantil = profesoresList.filter(p => p.etapa === "Infantil");
     const profesoresPrimaria = profesoresList.filter(p => p.etapa === "Primaria");
 
-    // Totales de cada curso en Infantil
+    // Totales de cada curso y sus grupos individuales en Infantil
+    const letrasList = [...(appSettings?.letras || ["A", "B", "C"])];
     const cursosInfOrder = [...(appSettings?.cursosInfantil || ["1º", "2º", "3º"])];
     const cursosInfMap = {};
-    cursosInfOrder.forEach(c => { cursosInfMap[c] = 0; });
+    const gruposInfMap = {};
+    cursosInfOrder.forEach(c => { 
+      cursosInfMap[c] = 0; 
+      letrasList.forEach(l => {
+        gruposInfMap[`${c} ${l}`] = 0;
+      });
+    });
     infantil.forEach(r => {
       const f = Number(r.fijos) || 0;
       const tk = Number(r.tickets) || 0;
@@ -2303,13 +2310,32 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
         cursosInfOrder.push(r.curso);
       }
       cursosInfMap[r.curso] += t;
+      const grupoKey = `${r.curso} ${r.letra}`;
+      gruposInfMap[grupoKey] = (gruposInfMap[grupoKey] || 0) + t;
     });
-    const totalesCursosInfantil = cursosInfOrder.map(c => ({ curso: c, total: cursosInfMap[c] || 0 }));
+    const totalesCursosInfantil = cursosInfOrder.map(c => {
+      const grupos = letrasList.map(l => ({
+        letra: l,
+        clase: `${c} ${l}`,
+        total: gruposInfMap[`${c} ${l}`] || 0
+      }));
+      return {
+        curso: c,
+        total: cursosInfMap[c] || 0,
+        grupos
+      };
+    });
 
-    // Totales de cada curso en Primaria
+    // Totales de cada curso y sus grupos individuales en Primaria
     const cursosPriOrder = [...(appSettings?.cursosPrimaria || ["1º", "2º", "3º", "4º", "5º", "6º"])];
     const cursosPriMap = {};
-    cursosPriOrder.forEach(c => { cursosPriMap[c] = 0; });
+    const gruposPriMap = {};
+    cursosPriOrder.forEach(c => { 
+      cursosPriMap[c] = 0; 
+      letrasList.forEach(l => {
+        gruposPriMap[`${c} ${l}`] = 0;
+      });
+    });
     primaria.forEach(r => {
       const f = Number(r.fijos) || 0;
       const tk = Number(r.tickets) || 0;
@@ -2319,8 +2345,21 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
         cursosPriOrder.push(r.curso);
       }
       cursosPriMap[r.curso] += t;
+      const grupoKey = `${r.curso} ${r.letra}`;
+      gruposPriMap[grupoKey] = (gruposPriMap[grupoKey] || 0) + t;
     });
-    const totalesCursosPrimaria = cursosPriOrder.map(c => ({ curso: c, total: cursosPriMap[c] || 0 }));
+    const totalesCursosPrimaria = cursosPriOrder.map(c => {
+      const grupos = letrasList.map(l => ({
+        letra: l,
+        clase: `${c} ${l}`,
+        total: gruposPriMap[`${c} ${l}`] || 0
+      }));
+      return {
+        curso: c,
+        total: cursosPriMap[c] || 0,
+        grupos
+      };
+    });
 
     return { 
       totInfComedor,
@@ -3536,38 +3575,82 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
               </div>
             </div>
 
-            {/* Bloque 2: Desglose Inmediato de Cada Curso (Infantil y Primaria) */}
+            {/* Bloque 2: Desglose Inmediato por Cursos y Grupos (Infantil y Primaria) */}
             <div className="relative z-10 pt-4 pb-2 border-b border-white/15 print:border-black space-y-3">
-              <div className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-100/90 print:text-slate-700 flex items-center gap-1.5">
-                <span>📊 Total por Curso:</span>
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-100/90 print:text-slate-700 flex items-center justify-between">
+                <span>📊 Desglose Inmediato por Cursos y Grupos:</span>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {/* Cursos Infantil */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/10 print:bg-slate-50 print:border-slate-300">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-pink-200 print:text-slate-600 mb-2 flex items-center justify-between">
-                    <span>🍼 Infantil ({stats.totInf} niños)</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+                {/* Bloque Infantil: Grupos Directos (1º A, 1º B, 1º C...) */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 print:bg-slate-50 print:border-slate-300 space-y-2.5">
+                  <div className="flex justify-between items-center pb-1 border-b border-white/10 print:border-slate-200">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-pink-200 print:text-slate-700 flex items-center gap-1.5">
+                      <span>🍼 Infantil ({stats.totInf} niños en total)</span>
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-pink-100 print:text-slate-600">
+                      {stats.totalesCursosInfantil.map(c => (
+                        <span key={c.curso} className="bg-white/10 px-2 py-0.5 rounded-md border border-white/10">
+                          {c.curso} Inf: <strong>{c.total}</strong>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+
+                  {/* Los 3 grupos de cada curso de Infantil a golpe de vista rápido */}
+                  <div className="space-y-2">
                     {stats.totalesCursosInfantil.map(c => (
-                      <div key={c.curso} className="bg-white/10 rounded-xl py-1.5 px-2 text-center border border-white/10 print:bg-white print:border-slate-200 shadow-xs">
-                        <span className="text-[10px] font-bold text-pink-100 print:text-slate-600 block">{c.curso} Inf</span>
-                        <span className="text-lg md:text-xl font-black text-white print:text-black block">{c.total}</span>
+                      <div key={c.curso} className="bg-white/10 rounded-xl p-2 border border-white/10 print:bg-white print:border-slate-200">
+                        <div className="flex justify-between items-center text-[10.5px] font-bold text-pink-100 print:text-slate-600 mb-1.5 px-0.5">
+                          <span className="uppercase tracking-wider font-extrabold">{c.curso} Infantil</span>
+                          <span className="font-black text-white print:text-black bg-pink-500/30 px-2 py-0.5 rounded-md text-[11px]">
+                            Total {c.curso}: {c.total} niños
+                          </span>
+                        </div>
+                        {/* Los 3 grupos (A, B, C) */}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {c.grupos.map(g => (
+                            <div key={g.clase} className="bg-white/15 rounded-lg py-1.5 px-2 text-center border border-white/10 print:bg-slate-100 shadow-xs">
+                              <span className="text-[10px] font-bold text-pink-100 print:text-slate-600 block">{g.clase}</span>
+                              <span className="text-lg md:text-xl font-black text-white print:text-black block">{g.total}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Cursos Primaria */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/10 print:bg-slate-50 print:border-slate-300">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-200 print:text-slate-600 mb-2 flex items-center justify-between">
-                    <span>🎒 Primaria ({stats.totPri} niños)</span>
+                {/* Bloque Primaria: Cursos y Grupos */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 print:bg-slate-50 print:border-slate-300 space-y-2.5">
+                  <div className="flex justify-between items-center pb-1 border-b border-white/10 print:border-slate-200">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-blue-200 print:text-slate-700 flex items-center gap-1.5">
+                      <span>🎒 Primaria ({stats.totPri} niños en total)</span>
+                    </span>
+                    <span className="text-[10px] bg-blue-500/30 text-blue-100 px-2 py-0.5 rounded-full font-extrabold print:text-black">
+                      6 Cursos
+                    </span>
                   </div>
+
+                  {/* Resumen de Primaria por Cursos y Grupos Activos */}
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     {stats.totalesCursosPrimaria.map(c => (
-                      <div key={c.curso} className="bg-white/10 rounded-xl py-1.5 px-2 text-center border border-white/10 print:bg-white print:border-slate-200 shadow-xs">
-                        <span className="text-[10px] font-bold text-blue-100 print:text-slate-600 block">{c.curso} Pri</span>
-                        <span className="text-lg md:text-xl font-black text-white print:text-black block">{c.total}</span>
+                      <div key={c.curso} className="bg-white/10 rounded-xl py-2 px-1.5 text-center border border-white/10 print:bg-white print:border-slate-200 shadow-xs flex flex-col justify-between">
+                        <div>
+                          <span className="text-[10px] font-bold text-blue-100 print:text-slate-600 block">{c.curso} Pri</span>
+                          <span className="text-lg md:text-xl font-black text-white print:text-black block">{c.total}</span>
+                        </div>
+                        {/* Desglose de grupos con comensales si los hay */}
+                        {c.total > 0 && (
+                          <div className="mt-1 pt-1 border-t border-white/15 text-[9.5px] text-blue-100 font-semibold space-y-0.5">
+                            {c.grupos.filter(g => g.total > 0).map(g => (
+                              <div key={g.clase} className="flex justify-between px-0.5">
+                                <span>{g.letra}:</span>
+                                <strong className="text-white print:text-black">{g.total}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
