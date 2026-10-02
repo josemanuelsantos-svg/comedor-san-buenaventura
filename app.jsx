@@ -21,7 +21,8 @@ const {
   Shapes, Backpack, Info, Edit3, UserX, AlertTriangle, UserCheck, Printer,
   Settings, Download, Moon, Sun, FileSpreadsheet, Eye, ClipboardCheck, ChevronRight,
   Bookmark, ChevronDown, ChevronUp, RotateCcw, Award, Activity, Music, Smile,
-  Baby, GraduationCap, Check, Send, Zap, ShieldAlert, Sparkles, ExternalLink
+  Baby, GraduationCap, Check, Send, Zap, ShieldAlert, Sparkles, ExternalLink,
+  Search, Filter
 } = LucideReact;
 
 // --- CONFIGURACIÓN DE FIREBASE ---
@@ -237,6 +238,7 @@ export default function App() {
   });
   const [authLoading, setAuthLoading] = useState(false);
   const [view, setView] = useState("teacher"); // "teacher" | "admin" | "settings"
+  const [settingsInitialTab, setSettingsInitialTab] = useState("roster"); // "roster" | "general" | "activities"
   const [registros, setRegistros] = useState([]);
   const [selectedDate, setSelectedDate] = useState(getLocalISODate());
   const [loadingData, setLoadingData] = useState(false);
@@ -479,11 +481,15 @@ export default function App() {
                 <span>Cocina</span>
               </button>
               <button 
-                onClick={() => { setView("settings"); }} 
-                className={`p-1.5 rounded-lg transition-all ${view === "settings" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-                title="Ajustes y Roster"
+                onClick={() => { 
+                  setSettingsInitialTab("roster");
+                  setView("settings"); 
+                }} 
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "settings" ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                title="Acceso Admin: Gestión de Alérgicos y Patrones de Comedor"
               >
-                <Settings className="w-4 h-4" />
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>Admin</span>
               </button>
             </div>
           </div>
@@ -561,6 +567,8 @@ export default function App() {
             showToast={showToast}
             db={db}
             currentUser={currentUser}
+            setView={setView}
+            setSettingsInitialTab={setSettingsInitialTab}
           />
         )}
         {view === "settings" && (
@@ -571,6 +579,7 @@ export default function App() {
             db={db}
             showToast={showToast}
             currentUser={currentUser}
+            initialTab={settingsInitialTab}
           />
         )}
       </main>
@@ -2136,7 +2145,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
 }
 
 // VISTA COCINA (ADMINISTRACIÓN)
-function AdminView({ registros, selectedDate, setSelectedDate, loading, dataError, onRetry, appSettings, showToast, db }) {
+function AdminView({ registros, selectedDate, setSelectedDate, loading, dataError, onRetry, appSettings, showToast, db, setView, setSettingsInitialTab }) {
   const [activeTab, setActiveTab] = useState("daily"); // "daily" | "trends" | "monthly"
   const [kitchenMode, setKitchenMode] = useState("simple"); // "simple" | "detailed"
   const [showClasses, setShowClasses] = useState(false);
@@ -3894,10 +3903,24 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                     {/* Matriz de Emplatado por Alergia */}
                     {Object.keys(consolidatedDietGroups).length > 0 && (
                       <div className="bg-amber-50/40 dark:bg-amber-955/10 border border-amber-200/60 dark:border-amber-900/30 rounded-2xl p-4 space-y-3">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                           <h4 className="font-extrabold text-xs text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-2">
                             <Salad className="w-4 h-4 text-amber-600" /> Matriz de Emplatado: Dietas Confirmadas
                           </h4>
+                          {setView && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (setSettingsInitialTab) setSettingsInitialTab("roster");
+                                setView("settings");
+                              }}
+                              className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                              title="Gestionar fichas de alérgicos y patrones de asistencia"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Editar Alérgicos (Admin)</span>
+                            </button>
+                          )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           {Object.entries(consolidatedDietGroups).map(([dietName, pupils]) => (
@@ -4184,8 +4207,20 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
   );
 }
 
-function SettingsView({ settings, onSave, onReset, db, showToast }) {
-  const [settingsTab, setSettingsTab] = useState("general"); // "general" | "roster" | "activities"
+function SettingsView({ settings, onSave, onReset, db, showToast, currentUser, initialTab = "roster" }) {
+  const [settingsTab, setSettingsTab] = useState(initialTab || "roster"); // "roster" | "general" | "activities"
+
+  useEffect(() => {
+    if (initialTab) {
+      setSettingsTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterEtapa, setFilterEtapa] = useState("all"); // "all" | "Infantil" | "Primaria"
+  const [filterPatron, setFilterPatron] = useState("all"); // "all" | "fijo" | "no_comedor"
+  const [showAddForm, setShowAddForm] = useState(false);
+
   const [maxComensales, setMaxComensales] = useState(settings.maxComensales);
   const [letrasInput, setLetrasInput] = useState(settings.letras.join(", "));
   const [cursosInfantilInput, setCursosInfantilInput] = useState(settings.cursosInfantil.join(", "));
@@ -4460,32 +4495,59 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
     showToast("Actividad guardada correctamente.", "success");
   };
 
+  const fijosCount = useMemo(() => roster.filter(s => s.tipoHabitual === "fijo").length, [roster]);
+  const noComedorCount = useMemo(() => roster.filter(s => s.tipoHabitual === "no_comedor").length, [roster]);
+  const infantilCount = useMemo(() => roster.filter(s => s.etapa === "Infantil").length, [roster]);
+  const primariaCount = useMemo(() => roster.filter(s => s.etapa === "Primaria").length, [roster]);
+
+  const filteredRoster = useMemo(() => {
+    return roster.filter(s => {
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matchesName = (s.nombre || "").toLowerCase().includes(term);
+        const matchesNota = (s.nota || "").toLowerCase().includes(term);
+        const matchesIndicaciones = (s.indicaciones || "").toLowerCase().includes(term);
+        const matchesCurso = `${s.etapa} ${s.curso} ${s.letra}`.toLowerCase().includes(term);
+        if (!matchesName && !matchesNota && !matchesIndicaciones && !matchesCurso) return false;
+      }
+      if (filterEtapa !== "all" && s.etapa !== filterEtapa) return false;
+      if (filterPatron !== "all" && s.tipoHabitual !== filterPatron) return false;
+      return true;
+    }).sort((a, b) => {
+      if (a.etapa !== b.etapa) return a.etapa.localeCompare(b.etapa);
+      if (a.curso !== b.curso) return a.curso.localeCompare(b.curso);
+      if (a.letra !== b.letra) return a.letra.localeCompare(b.letra);
+      return (a.nombre || "").localeCompare(b.nombre || "");
+    });
+  }, [roster, searchTerm, filterEtapa, filterPatron]);
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-md border border-slate-200/60 dark:border-slate-800 overflow-hidden animate-fade-in">
       <div className="bg-slate-50 dark:bg-slate-850 px-6 py-4 border-b border-slate-150 dark:border-slate-800 flex flex-col sm:flex-row gap-4 justify-between items-center">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base flex gap-2 items-center">
-          <Settings className="w-5 h-5 text-blue-500"/> Configuración de Comedor y Alumnado
+          <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400"/> Panel de Administración y Ajustes
         </h3>
         
         <div className="flex bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-250 dark:border-slate-700 w-full sm:w-auto">
           <button 
             type="button"
+            onClick={() => setSettingsTab("roster")} 
+            className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded transition-all flex items-center justify-center gap-1.5 ${settingsTab === "roster" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800"}`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Alérgicos y Patrones ({roster.length})</span>
+          </button>
+          <button 
+            type="button"
             onClick={() => setSettingsTab("general")} 
-            className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded transition-all ${settingsTab === "general" ? "bg-white dark:bg-slate-700 text-blue-650 dark:text-blue-400 shadow-sm" : "text-slate-555 dark:text-slate-400 hover:text-slate-800"}`}
+            className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded transition-all ${settingsTab === "general" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800"}`}
           >
             Ajustes Generales
           </button>
           <button 
             type="button"
-            onClick={() => setSettingsTab("roster")} 
-            className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded transition-all ${settingsTab === "roster" ? "bg-white dark:bg-slate-700 text-blue-650 dark:text-blue-400 shadow-sm" : "text-slate-555 dark:text-slate-400 hover:text-slate-800"}`}
-          >
-            Roster de Alérgenos ({roster.length})
-          </button>
-          <button 
-            type="button"
             onClick={() => setSettingsTab("activities")} 
-            className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded transition-all ${settingsTab === "activities" ? "bg-white dark:bg-slate-700 text-blue-655 dark:text-blue-400 shadow-sm" : "text-slate-555 dark:text-slate-400 hover:text-slate-800"}`}
+            className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded transition-all ${settingsTab === "activities" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800"}`}
           >
             Actividades Extra
           </button>
@@ -4617,160 +4679,303 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
 
       {settingsTab === "roster" && (
         <div className="p-6 space-y-6 text-sm">
-          {/* Formulario Añadir Estudiante */}
-          <div className="bg-slate-50 dark:bg-slate-855/45 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-3">
-            <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
-              <Plus className="w-4 h-4 text-blue-500"/> Añadir Estudiante al Roster de Alergias
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Nombre Completo</label>
-                <input 
-                  type="text" 
-                  value={nuevoAlumno.nombre} 
-                  onChange={e => setNuevoAlumno(prev => ({ ...prev, nombre: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 font-semibold"
-                  placeholder="Ej: Sofía García"
-                />
+          {/* Tarjeta Explicativa de Patrones */}
+          <div className="bg-indigo-50/70 dark:bg-indigo-955/20 border border-indigo-200/80 dark:border-indigo-900/50 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-indigo-600 text-white rounded-xl shrink-0 mt-0.5 shadow-sm">
+                <ShieldCheck className="w-5 h-5" />
               </div>
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-1.5">
+                  <span>Gestión de Alérgicos y Patrones de Asistencia</span>
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                  Configura las alergias/dietas médicas y el <strong>patrón predeterminado</strong> con el que cada alumno asiste al comedor escolar:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-xs">
+                  <div className="flex items-start gap-1.5 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-slate-700">
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">🟢 Suele quedarse (Fijo):</span>
+                    <span className="text-slate-600 dark:text-slate-300">Come habitualmente. Al pasar lista, aparece seleccionado en <strong>Comedor</strong>.</span>
+                  </div>
+                  <div className="flex items-start gap-1.5 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-slate-700">
+                    <span className="font-bold text-slate-500 dark:text-slate-400 shrink-0">⚪ No suele quedarse:</span>
+                    <span className="text-slate-600 dark:text-slate-300">No suele comer o viene días sueltos. Al pasar lista, aparece en <strong>Falta</strong>.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddForm(prev => !prev)}
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shrink-0 shadow-sm transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{showAddForm ? "Cerrar Formulario" : "Añadir Alumno"}</span>
+            </button>
+          </div>
+
+          {/* Contadores Estadísticos */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+            <div className="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+              <span className="block text-[10px] font-bold uppercase text-slate-400">Total Alumnos</span>
+              <span className="text-lg font-black text-slate-800 dark:text-slate-100">{roster.length}</span>
+            </div>
+            <div className="bg-emerald-50/50 dark:bg-emerald-955/20 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+              <span className="block text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">🟢 Fijos</span>
+              <span className="text-lg font-black text-emerald-700 dark:text-emerald-300">{fijosCount}</span>
+            </div>
+            <div className="bg-slate-100/70 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+              <span className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">⚪ No Comedor</span>
+              <span className="text-lg font-black text-slate-700 dark:text-slate-200">{noComedorCount}</span>
+            </div>
+            <div className="bg-pink-50/50 dark:bg-pink-955/20 p-2.5 rounded-xl border border-pink-200 dark:border-pink-800">
+              <span className="block text-[10px] font-bold uppercase text-pink-600 dark:text-pink-400">Infantil</span>
+              <span className="text-lg font-black text-pink-700 dark:text-pink-300">{infantilCount}</span>
+            </div>
+            <div className="bg-blue-50/50 dark:bg-blue-955/20 p-2.5 rounded-xl border border-blue-200 dark:border-blue-800">
+              <span className="block text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400">Primaria</span>
+              <span className="text-lg font-black text-blue-700 dark:text-blue-300">{primariaCount}</span>
+            </div>
+          </div>
+
+          {/* Formulario Añadir Estudiante (Desplegable) */}
+          {showAddForm && (
+            <div className="bg-slate-50 dark:bg-slate-855/45 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-3 animate-fade-in">
+              <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
+                <Plus className="w-4 h-4 text-blue-500"/> Añadir Estudiante al Roster de Alergias
+              </h4>
               
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Etapa</label>
-                  <select 
-                    value={nuevoAlumno.etapa} 
-                    onChange={e => setNuevoAlumno(prev => ({ ...prev, etapa: e.target.value }))}
-                    className="w-full px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-850 dark:text-slate-100"
-                  >
-                    <option value="Infantil">Infantil</option>
-                    <option value="Primaria">Primaria</option>
-                  </select>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Nombre Completo</label>
+                  <input 
+                    type="text" 
+                    value={nuevoAlumno.nombre} 
+                    onChange={e => setNuevoAlumno(prev => ({ ...prev, nombre: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 font-semibold"
+                    placeholder="Ej: Sofía García"
+                  />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Curso</label>
-                  <select 
-                    value={nuevoAlumno.curso} 
-                    onChange={e => setNuevoAlumno(prev => ({ ...prev, curso: e.target.value }))}
-                    className="w-full px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-855 dark:text-slate-100"
-                  >
-                    {cursosFormInput.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Letra</label>
-                  <select 
-                    value={nuevoAlumno.letra} 
-                    onChange={e => setNuevoAlumno(prev => ({ ...prev, letra: e.target.value }))}
-                    className="w-full px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-855 dark:text-slate-100"
-                  >
-                    {settings.letras.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Alergias Comunes</span>
-              <div className="flex flex-wrap gap-1.5">
-                {["Gluten", "Lactosa", "Huevo", "Frutos Secos", "Pescado", "Legumbres", "PLV"].map(tag => {
-                  const active = nuevoAlumno.alergias.includes(tag);
-                  return (
-                    <button 
-                      key={tag} 
-                      type="button" 
-                      onClick={() => toggleAllergyFormTag(tag)}
-                      className={`text-[10.5px] px-2.5 py-1 rounded-full font-semibold border transition-all ${
-                        active 
-                          ? "bg-blue-600 border-blue-600 text-white shadow-sm" 
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-405 hover:border-slate-350"
-                      }`}
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Etapa</label>
+                    <select 
+                      value={nuevoAlumno.etapa} 
+                      onChange={e => setNuevoAlumno(prev => ({ ...prev, etapa: e.target.value }))}
+                      className="w-full px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-850 dark:text-slate-100"
                     >
-                      {tag}
-                    </button>
-                  );
-                })}
+                      <option value="Infantil">Infantil</option>
+                      <option value="Primaria">Primaria</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Curso</label>
+                    <select 
+                      value={nuevoAlumno.curso} 
+                      onChange={e => setNuevoAlumno(prev => ({ ...prev, curso: e.target.value }))}
+                      className="w-full px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-855 dark:text-slate-100"
+                    >
+                      {cursosFormInput.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Letra</label>
+                    <select 
+                      value={nuevoAlumno.letra} 
+                      onChange={e => setNuevoAlumno(prev => ({ ...prev, letra: e.target.value }))}
+                      className="w-full px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-855 dark:text-slate-100"
+                    >
+                      {settings.letras.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Alergias Comunes</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Gluten", "Lactosa", "Huevo", "Frutos Secos", "Pescado", "Legumbres", "PLV"].map(tag => {
+                    const active = nuevoAlumno.alergias.includes(tag);
+                    return (
+                      <button 
+                        key={tag} 
+                        type="button" 
+                        onClick={() => toggleAllergyFormTag(tag)}
+                        className={`text-[10.5px] px-2.5 py-1 rounded-full font-semibold border transition-all ${
+                          active 
+                            ? "bg-blue-600 border-blue-600 text-white shadow-sm" 
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-405 hover:border-slate-350"
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Otra Alergia / Detalle</label>
+                  <input 
+                    type="text" 
+                    placeholder="Detalle de alergia..." 
+                    value={nuevoAlumno.nota}
+                    onChange={e => setNuevoAlumno(prev => ({ ...prev, nota: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Teléfono Contacto</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ej: 612345678" 
+                    value={nuevoAlumno.telefono || ""}
+                    onChange={e => setNuevoAlumno(prev => ({ ...prev, telefono: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Patrón Habitual de Asistencia</label>
+                  <select 
+                    value={nuevoAlumno.tipoHabitual || "no_comedor"} 
+                    onChange={e => setNuevoAlumno(prev => ({ ...prev, tipoHabitual: e.target.value }))}
+                    className="w-full px-2.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer"
+                  >
+                    <option value="fijo">🟢 Suele quedarse (Fijo - En comedor por defecto)</option>
+                    <option value="no_comedor">⚪ No suele quedarse (En falta por defecto)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Medicación / Urgencias</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ej: Adrenalina autoinyectable en secretaría..." 
+                    value={nuevoAlumno.medicacion || ""}
+                    onChange={e => setNuevoAlumno(prev => ({ ...prev, medicacion: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Indicaciones Operativas</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ej: Cuidado estricto con trazas de huevo..." 
+                    value={nuevoAlumno.indicaciones || ""}
+                    onChange={e => setNuevoAlumno(prev => ({ ...prev, indicaciones: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between">
+                <label className="flex gap-2 items-center text-xs font-bold text-slate-650 dark:text-slate-400 cursor-pointer bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-755 select-none">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 accent-green-600 rounded" 
+                    checked={nuevoAlumno.dietaBlanda} 
+                    onChange={e => setNuevoAlumno(prev => ({ ...prev, dietaBlanda: e.target.checked }))}
+                  /> 
+                  <span>Dieta Blanda permanente</span>
+                </label>
+
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    className="py-2 px-4 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleAddAlumnoRoster}
+                    className="py-2.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs uppercase tracking-wide"
+                  >
+                    Guardar Estudiante
+                  </button>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Otra Alergia / Detalle</label>
-                <input 
-                  type="text" 
-                  placeholder="Detalle de alergia..." 
-                  value={nuevoAlumno.nota}
-                  onChange={e => setNuevoAlumno(prev => ({ ...prev, nota: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
+          {/* Búsqueda y Filtros de Alumnos */}
+          <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-2">
+            <div className="flex flex-col sm:flex-row gap-2 items-center justify-between">
+              <div className="relative w-full sm:w-80">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, curso o alergia..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-7 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none text-slate-800 dark:text-slate-100"
                 />
+                {searchTerm && (
+                  <button onClick={() => setSearchTerm("")} className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Teléfono Contacto</label>
-                <input 
-                  type="text" 
-                  placeholder="Ej: 612345678" 
-                  value={nuevoAlumno.telefono || ""}
-                  onChange={e => setNuevoAlumno(prev => ({ ...prev, telefono: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
-                />
+              <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                {/* Filtro Etapa */}
+                <div className="flex bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-250 dark:border-slate-700 text-[11px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setFilterEtapa("all")}
+                    className={`px-2.5 py-1 rounded-md transition-all ${filterEtapa === "all" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs" : "text-slate-500"}`}
+                  >
+                    Todas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterEtapa("Infantil")}
+                    className={`px-2.5 py-1 rounded-md transition-all ${filterEtapa === "Infantil" ? "bg-white dark:bg-slate-700 text-pink-600 dark:text-pink-400 shadow-xs" : "text-slate-500"}`}
+                  >
+                    Infantil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterEtapa("Primaria")}
+                    className={`px-2.5 py-1 rounded-md transition-all ${filterEtapa === "Primaria" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs" : "text-slate-500"}`}
+                  >
+                    Primaria
+                  </button>
+                </div>
+
+                {/* Filtro Patrón */}
+                <div className="flex bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-250 dark:border-slate-700 text-[11px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setFilterPatron("all")}
+                    className={`px-2.5 py-1 rounded-md transition-all ${filterPatron === "all" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs" : "text-slate-500"}`}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterPatron("fijo")}
+                    className={`px-2.5 py-1 rounded-md transition-all ${filterPatron === "fijo" ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs" : "text-slate-500"}`}
+                  >
+                    🟢 Fijos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterPatron("no_comedor")}
+                    className={`px-2.5 py-1 rounded-md transition-all ${filterPatron === "no_comedor" ? "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 shadow-xs" : "text-slate-500"}`}
+                  >
+                    ⚪ No Comedor
+                  </button>
+                </div>
               </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Frecuencia Comedor</label>
-                <select 
-                  value={nuevoAlumno.tipoHabitual || "no_comedor"} 
-                  onChange={e => setNuevoAlumno(prev => ({ ...prev, tipoHabitual: e.target.value }))}
-                  className="w-full px-2.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer"
-                >
-                  <option value="no_comedor">No suele quedarse (No Comedor)</option>
-                  <option value="fijo">Suele quedarse (Fijo)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Medicación / Urgencias</label>
-                <input 
-                  type="text" 
-                  placeholder="Ej: Adrenalina autoinyectable en secretaría..." 
-                  value={nuevoAlumno.medicacion || ""}
-                  onChange={e => setNuevoAlumno(prev => ({ ...prev, medicacion: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Indicaciones Operativas</label>
-                <input 
-                  type="text" 
-                  placeholder="Ej: Cuidado estricto con trazas de huevo..." 
-                  value={nuevoAlumno.indicaciones || ""}
-                  onChange={e => setNuevoAlumno(prev => ({ ...prev, indicaciones: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl outline-none text-slate-800 dark:text-slate-100 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between">
-              <label className="flex gap-2 items-center text-xs font-bold text-slate-650 dark:text-slate-400 cursor-pointer bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-755 select-none">
-                <input 
-                  type="checkbox" 
-                  className="w-4 h-4 accent-green-600 rounded" 
-                  checked={nuevoAlumno.dietaBlanda} 
-                  onChange={e => setNuevoAlumno(prev => ({ ...prev, dietaBlanda: e.target.checked }))}
-                /> 
-                <span>Dieta Blanda permanente</span>
-              </label>
-
-              <button 
-                type="button"
-                onClick={handleAddAlumnoRoster}
-                className="py-2.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs uppercase tracking-wide"
-              >
-                Guardar Estudiante
-              </button>
             </div>
           </div>
 
@@ -4780,7 +4985,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
                   <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
-                    <Edit3 className="w-5 h-5 text-blue-500" /> Editar Ficha de Alumno
+                    <Edit3 className="w-5 h-5 text-indigo-600" /> Editar Ficha y Patrón del Alumno
                   </h3>
                   <button 
                     type="button"
@@ -4836,7 +5041,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Alergias / Intolerancias</label>
+                    <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Alergias / Intolerancias / Restricción</label>
                     <input 
                       type="text" 
                       value={editingStudent.nota || ""} 
@@ -4845,7 +5050,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Teléfono Contacto</label>
                       <input 
@@ -4857,14 +5062,14 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Frecuencia Comedor</label>
+                      <label className="block font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Patrón Habitual de Asistencia</label>
                       <select 
                         value={editingStudent.tipoHabitual || "no_comedor"} 
                         onChange={e => setEditingStudent({ ...editingStudent, tipoHabitual: e.target.value })}
                         className="w-full px-2 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold"
                       >
-                        <option value="no_comedor">No suele quedarse</option>
-                        <option value="fijo">Suele quedarse (Fijo)</option>
+                        <option value="fijo">🟢 Suele quedarse (Fijo - Por defecto en Comedor)</option>
+                        <option value="no_comedor">⚪ No suele quedarse (Por defecto en Falta)</option>
                       </select>
                     </div>
                   </div>
@@ -4911,7 +5116,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
                   <button 
                     type="button"
                     onClick={handleSaveEditAlumno} 
-                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md"
+                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md"
                   >
                     Guardar Cambios
                   </button>
@@ -4923,15 +5128,15 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
           {/* Listado de Estudiantes */}
           <div className="space-y-3">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-              <span className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Alumnos en la Base de Datos ({roster.length})
+              <span className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Alumnos Mostrados ({filteredRoster.length} de {roster.length})
               </span>
               {roster.length > 0 && (
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => handleBulkUpdateFrecuencia("fijo")}
-                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-955/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-[10px] font-bold rounded-lg transition-colors border border-blue-200/40 dark:border-blue-900/40 flex items-center gap-1"
+                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-955/20 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-lg transition-colors border border-emerald-200 dark:border-emerald-800 flex items-center gap-1"
                   >
                     <span>Fijos Todos</span>
                   </button>
@@ -4946,92 +5151,90 @@ function SettingsView({ settings, onSave, onReset, db, showToast }) {
               )}
             </div>
             
-            {roster.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 italic">No hay alumnos alérgicos registrados. Añade uno con el formulario superior.</div>
+            {filteredRoster.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 italic bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+                {roster.length === 0 ? "No hay alumnos alérgicos registrados. Añade uno con el formulario superior." : "No se han encontrado alumnos con los filtros o término de búsqueda actual."}
+              </div>
             ) : (
-              <div className="border border-slate-150 dark:border-slate-800 rounded-2xl overflow-hidden">
+              <div className="border border-slate-150 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {roster
-                    .sort((a, b) => {
-                      if (a.etapa !== b.etapa) return a.etapa.localeCompare(b.etapa);
-                      if (a.curso !== b.curso) return a.curso.localeCompare(b.curso);
-                      if (a.letra !== b.letra) return a.letra.localeCompare(b.letra);
-                      return a.nombre.localeCompare(b.nombre); 
-                    })
-                    .map(student => (
-                      <div key={student.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 flex-wrap">
-                            <span className="text-sm">{student.nombre}</span>
-                            <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md ${student.etapa === 'Infantil' ? 'bg-pink-100 text-pink-700 dark:bg-pink-955/40 dark:text-pink-400' : 'bg-blue-100 text-blue-755 dark:bg-blue-955/40 dark:text-blue-400'}`}>
-                              {student.etapa} {student.curso}-{student.letra}
-                            </span>
-                            {student.dietaBlanda && (
-                              <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-855 dark:text-emerald-300 px-1.5 py-0.2 rounded text-[9px] uppercase font-black">Blanda</span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateAlumnoRosterFrecuencia(student.id, student.tipoHabitual === 'no_comedor' ? 'fijo' : 'no_comedor')}
-                              className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1 ${
-                                student.tipoHabitual === 'no_comedor' 
-                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700' 
-                                  : 'bg-blue-50 hover:bg-blue-100 text-blue-750 dark:bg-blue-955/20 dark:text-blue-450 dark:hover:bg-blue-955/40'
-                              }`}
-                              title="Haz clic para alternar la frecuencia predeterminada de este alumno"
-                            >
-                              <span>{student.tipoHabitual === 'no_comedor' ? 'No Comedor' : 'Fijo'}</span>
-                              <span className="text-[8px] opacity-70">🔄</span>
-                            </button>
-                          </div>
-                          
-                          <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1">
-                            {student.nota || "Sin notas de alérgenos"}
-                          </div>
-
-                          {(student.telefono || student.medicacion || student.indicaciones) && (
-                            <div className="flex flex-wrap gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">
-                              {student.telefono && (
-                                <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold">
-                                  📞 {student.telefono}
-                                </span>
-                              )}
-                              {student.medicacion && (
-                                <span className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">
-                                  💊 {student.medicacion}
-                                </span>
-                              )}
-                              {student.indicaciones && (
-                                <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 px-1.5 py-0.5 rounded font-semibold italic">
-                                  ℹ️ {student.indicaciones}
-                                </span>
-                              )}
-                            </div>
+                  {filteredRoster.map(student => (
+                    <div key={student.id} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 flex-wrap">
+                          <span className="text-sm">{student.nombre}</span>
+                          <span className={`text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-md ${student.etapa === 'Infantil' ? 'bg-pink-100 text-pink-700 dark:bg-pink-955/40 dark:text-pink-400' : 'bg-blue-100 text-blue-755 dark:bg-blue-955/40 dark:text-blue-400'}`}>
+                            {student.etapa} {student.curso}-{student.letra}
+                          </span>
+                          {student.dietaBlanda && (
+                            <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-855 dark:text-emerald-300 px-1.5 py-0.5 rounded text-[9px] uppercase font-black">Blanda</span>
                           )}
+
+                          {/* Botón de Alternar Patrón Directo */}
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateAlumnoRosterFrecuencia(student.id, student.tipoHabitual === 'no_comedor' ? 'fijo' : 'no_comedor')}
+                            className={`text-[11px] font-bold px-2.5 py-1 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer border active:scale-95 ${
+                              student.tipoHabitual === 'fijo' 
+                                ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' 
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                            }`}
+                            title="Haz clic para alternar el patrón de asistencia habitual"
+                          >
+                            <span className={`w-2 h-2 rounded-full ${student.tipoHabitual === 'fijo' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                            <span>{student.tipoHabitual === 'fijo' ? '🟢 Suele quedarse (Fijo)' : '⚪ No suele quedarse'}</span>
+                            <span className="text-[10px] text-slate-400 ml-0.5">🔄</span>
+                          </button>
                         </div>
                         
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button 
-                            type="button"
-                            onClick={() => setEditingStudent(student)}
-                            className="p-2 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
-                            title="Editar Ficha"
-                            aria-label={`Editar ficha de ${student.nombre}`}
-                          >
-                            <Edit3 className="w-4 h-4"/>
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => handleDeleteAlumnoRoster(student.id)}
-                            className="p-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-650 rounded-lg transition-colors"
-                            title="Eliminar de la Base de Datos"
-                            aria-label={`Eliminar a ${student.nombre}`}
-                          >
-                            <Trash2 className="w-4 h-4"/>
-                          </button>
+                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1">
+                          {student.nota || "Sin notas de alérgenos"}
                         </div>
+
+                        {(student.telefono || student.medicacion || student.indicaciones) && (
+                          <div className="flex flex-wrap gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">
+                            {student.telefono && (
+                              <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold">
+                                📞 {student.telefono}
+                              </span>
+                            )}
+                            {student.medicacion && (
+                              <span className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">
+                                💊 {student.medicacion}
+                              </span>
+                            )}
+                            {student.indicaciones && (
+                              <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 px-1.5 py-0.5 rounded font-semibold italic">
+                                ℹ️ {student.indicaciones}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    ))
-                  }
+                      
+                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                        <button 
+                          type="button"
+                          onClick={() => setEditingStudent(student)}
+                          className="px-2.5 py-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 text-xs font-bold"
+                          title="Editar Ficha"
+                          aria-label={`Editar ficha de ${student.nombre}`}
+                        >
+                          <Edit3 className="w-3.5 h-3.5"/>
+                          <span>Editar</span>
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleDeleteAlumnoRoster(student.id)}
+                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-650 rounded-lg transition-colors"
+                          title="Eliminar de la Base de Datos"
+                          aria-label={`Eliminar a ${student.nombre}`}
+                        >
+                          <Trash2 className="w-4 h-4"/>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
