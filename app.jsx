@@ -658,6 +658,12 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
     return lastSubKey ? !!localStorage.getItem(lastSubKey) : false;
   }, [lastSubKey]);
 
+  // Reiniciar estado de asistencia al cambiar de clase para evitar arrastrar selecciones
+  useEffect(() => {
+    setAttendance({});
+    setManualEspeciales([]);
+  }, [formData.etapa, formData.curso, formData.letra]);
+
   // Cargar estudiantes del Roster permanente para la clase elegida (Mejora 1)
   useEffect(() => {
     if (step !== 3 || !formData.etapa || !formData.curso || !formData.letra) return;
@@ -673,11 +679,11 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
       const students = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setRosterAlumnos(students);
       
-      // Inicializar el mapa de asistencia
+      // Inicializar el mapa de asistencia respetando tipoHabitual (fijo vs no_comedor)
       setAttendance(prev => {
         const newAttendance = { ...prev };
         students.forEach(s => {
-          if (newAttendance[s.id] === undefined) {
+          if (newAttendance[s.id] === undefined || !newAttendance[s.id].userModified) {
             let defaultOption = "falta";
             if (s.tipoHabitual === "fijo") {
               defaultOption = esExcursion ? "picnic" : "comedor";
@@ -686,7 +692,8 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
               nombre: s.nombre,
               nota: s.nota,
               dietaBlanda: s.dietaBlanda,
-              option: defaultOption
+              option: defaultOption,
+              userModified: false
             };
           }
         });
@@ -697,7 +704,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
     });
     
     return () => unsubscribe();
-  }, [step, formData.etapa, formData.curso, formData.letra, db]);
+  }, [step, formData.etapa, formData.curso, formData.letra, db, esExcursion]);
 
   // Cargar historial de esta clase sin requerir índices compuestos de Firebase (Productividad Profesor 4)
   useEffect(() => {
@@ -878,7 +885,8 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        option: option
+        option: option,
+        userModified: true
       }
     }));
   };
@@ -925,13 +933,31 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
       const savedIds = data.especialesRosterIds || [];
       setAttendance(prev => {
         const syncAtt = { ...prev };
-        Object.keys(syncAtt).forEach(id => {
-          if (savedOptions[id]) {
-            syncAtt[id].option = savedOptions[id];
-          } else if (savedIds.includes(id)) {
-            syncAtt[id].option = esExcursion ? "picnic" : "comedor";
+        (rosterAlumnos || []).forEach(s => {
+          if (savedOptions[s.id]) {
+            syncAtt[s.id] = {
+              nombre: s.nombre,
+              nota: s.nota,
+              dietaBlanda: s.dietaBlanda,
+              option: savedOptions[s.id],
+              userModified: true
+            };
+          } else if (savedIds.includes(s.id) && s.tipoHabitual === "fijo") {
+            syncAtt[s.id] = {
+              nombre: s.nombre,
+              nota: s.nota,
+              dietaBlanda: s.dietaBlanda,
+              option: esExcursion ? "picnic" : "comedor",
+              userModified: true
+            };
           } else {
-            syncAtt[id].option = "falta";
+            syncAtt[s.id] = {
+              nombre: s.nombre,
+              nota: s.nota,
+              dietaBlanda: s.dietaBlanda,
+              option: s.tipoHabitual === "fijo" ? (esExcursion ? "picnic" : "comedor") : "falta",
+              userModified: false
+            };
           }
         });
         return syncAtt;
@@ -986,7 +1012,8 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
           nombre: s.nombre,
           nota: s.nota,
           dietaBlanda: s.dietaBlanda,
-          option: found ? (found.option || (yaRegistrado.esExcursion ? "picnic" : "comedor")) : "falta"
+          option: found ? (found.option || (yaRegistrado.esExcursion ? "picnic" : "comedor")) : "falta",
+          userModified: true
         };
       });
       return syncAtt;
