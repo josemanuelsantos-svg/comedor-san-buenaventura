@@ -415,6 +415,46 @@ try {
   db = getFirestore(app);
 }
 
+// Configuración de Robótica para Primaria:
+// Martes (2) y Jueves (4) — 11 niños en total:
+// 3 de 4ºA, 2 de 4ºC, 3 de 5ºC, 2 de 6ºA y 1 de 6ºC.
+// Van a Robótica y comen más tarde en el comedor (contados en el total por los tutores).
+const ROBOTICA_CONFIG = {
+  dias: [2, 4], // Martes (2) y Jueves (4)
+  total: 11,
+  desglose: [
+    { etapa: "Primaria", curso: "4º", letra: "A", clase: "4º A", cantidad: 3 },
+    { etapa: "Primaria", curso: "4º", letra: "C", clase: "4º C", cantidad: 2 },
+    { etapa: "Primaria", curso: "5º", letra: "C", clase: "5º C", cantidad: 3 },
+    { etapa: "Primaria", curso: "6º", letra: "A", clase: "6º A", cantidad: 2 },
+    { etapa: "Primaria", curso: "6º", letra: "C", clase: "6º C", cantidad: 1 },
+  ],
+  mapa: {
+    "4º_A": 3,
+    "4º_C": 2,
+    "5º_C": 3,
+    "6º_A": 2,
+    "6º_C": 1
+  }
+};
+
+const getRoboticaDayInfo = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + "T12:00:00");
+  const day = d.getDay();
+  if (day === 2 || day === 4) {
+    return {
+      isRoboticaDay: true,
+      dayNumber: day,
+      dayName: day === 2 ? "Martes" : "Jueves",
+      total: ROBOTICA_CONFIG.total,
+      desglose: ROBOTICA_CONFIG.desglose,
+      mapa: ROBOTICA_CONFIG.mapa
+    };
+  }
+  return null;
+};
+
 // Configuración por defecto (modificable en el panel de Settings)
 const DEFAULT_SETTINGS = {
   maxComensales: 35,
@@ -437,14 +477,11 @@ const DEFAULT_SETTINGS = {
       id: "robotica",
       nombre: "Robótica",
       etapa: "Primaria",
-      cursos: ["1º", "2º", "3º", "4º", "5º", "6º"],
+      cursos: ["4º", "5º", "6º"],
       schedule: {
-        "1º": [2, 4],
-        "2º": [2, 4],
-        "3º": [2, 4],
-        "4º": [1, 3],
-        "5º": [1, 3],
-        "6º": [1, 3]
+        "4º": [2, 4],
+        "5º": [2, 4],
+        "6º": [2, 4]
       },
       icon: "Bot"
     }
@@ -1022,14 +1059,20 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
     return `last_sub_${formData.etapa}_${formData.curso}_${formData.letra}`;
   }, [formData.etapa, formData.curso, formData.letra]);
 
-  const hasLastSub = useMemo(() => {
-    return lastSubKey ? !!localStorage.getItem(lastSubKey) : false;
-  }, [lastSubKey]);
-
-  // Reiniciar estado de asistencia al cambiar de clase para evitar arrastrar selecciones
+  // Reiniciar estado de asistencia al cambiar de clase y auto-asignar robótica si aplica
   useEffect(() => {
     setAttendance({});
     setManualEspeciales([]);
+
+    if (formData.etapa === "Primaria" && formData.curso && formData.letra) {
+      const dayOfWeek = new Date().getDay();
+      const key = `${formData.curso}_${formData.letra}`;
+      const scheduledRob = (dayOfWeek === 2 || dayOfWeek === 4) && ROBOTICA_CONFIG.mapa[key] ? ROBOTICA_CONFIG.mapa[key] : 0;
+      setFormData(prev => ({
+        ...prev,
+        robotica: prev.robotica !== undefined && prev.robotica > 0 ? prev.robotica : scheduledRob
+      }));
+    }
   }, [formData.etapa, formData.curso, formData.letra]);
 
   // Cargar estudiantes del Roster permanente para la clase elegida (Mejora 1)
@@ -1130,17 +1173,23 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
 
   // Opciones de actividades extra dinámicas según reglas de Ajustes
   const activeActivitiesForClass = useMemo(() => {
-    const dayOfWeek = new Date().getDay(); // 1 = Lunes, etc.
+    const dayOfWeek = new Date().getDay(); // 1 = Lunes, 2 = Martes, etc.
     if (!formData.etapa || !formData.curso) return [];
     
+    const key = `${formData.curso}_${formData.letra}`;
+    const isRobClass = (dayOfWeek === 2 || dayOfWeek === 4) && ROBOTICA_CONFIG.mapa[key];
+
     return (appSettings.actividades || []).filter(act => {
       if (act.etapa !== formData.etapa) return false;
+      if (act.id === "robotica") {
+        return !!isRobClass;
+      }
       if (!act.cursos.includes(formData.curso)) return false;
       
       const days = act.schedule?.[formData.curso] || [];
       return days.includes(dayOfWeek);
     });
-  }, [formData.etapa, formData.curso, appSettings.actividades]);
+  }, [formData.etapa, formData.curso, formData.letra, appSettings.actividades]);
 
   const resetForm = () => {
     const defaultFormData = { 
@@ -2037,27 +2086,34 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                     {activeActivitiesForClass.map(act => {
                       const IconComponent = LucideReact[act.icon] || BookOpen;
                       return (
-                        <div key={act.id} className="flex justify-between bg-white/60 dark:bg-slate-850/40 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 items-center">
-                          <span className="flex gap-2 text-sm font-bold text-blue-700 dark:text-blue-400 items-center">
-                            <IconComponent className="w-4 h-4 text-blue-505"/> {act.nombre}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button 
-                              type="button"
-                              onClick={() => adjustValue(act.id, -1)} 
-                              className="btn-hover-effect w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="w-8 text-center font-bold text-slate-850 dark:text-slate-200">{formData[act.id] || 0}</span>
-                            <button 
-                              type="button"
-                              onClick={() => adjustValue(act.id, 1)} 
-                              className="btn-hover-effect w-7 h-7 rounded-lg bg-blue-650 text-white font-bold flex items-center justify-center"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
+                        <div key={act.id} className="space-y-1.5">
+                          <div className="flex justify-between bg-white/60 dark:bg-slate-850/40 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 items-center">
+                            <span className="flex gap-2 text-sm font-bold text-blue-700 dark:text-blue-400 items-center">
+                              <IconComponent className="w-4 h-4 text-blue-505"/> {act.nombre}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                type="button"
+                                onClick={() => adjustValue(act.id, -1)} 
+                                className="btn-hover-effect w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="w-8 text-center font-bold text-slate-850 dark:text-slate-200">{formData[act.id] || 0}</span>
+                              <button 
+                                type="button"
+                                onClick={() => adjustValue(act.id, 1)} 
+                                className="btn-hover-effect w-7 h-7 rounded-lg bg-blue-650 text-white font-bold flex items-center justify-center"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
+                          {act.id === "robotica" && (
+                            <div className="text-[11px] font-medium text-cyan-850 dark:text-cyan-200 bg-cyan-50/80 dark:bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-200/60 dark:border-cyan-800/50 text-left">
+                              🤖 <strong>Turno tardío:</strong> Van a robótica y comen más tarde en el comedor. Recuerda que <span className="underline">debes contarlos</span> en el total de comensales (Fijos).
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -2809,6 +2865,31 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
     };
   }, [registros, appSettings]);
 
+  // Resumen del turno de robótica para Martes y Jueves (11 comensales en turno tardío)
+  const roboticaSummary = useMemo(() => {
+    if (!selectedDate) return null;
+    const info = getRoboticaDayInfo(selectedDate);
+    if (!info) return null;
+
+    const desglose = info.desglose.map(item => {
+      const reg = registros.find(r => r.etapa === item.etapa && r.curso === item.curso && r.letra === item.letra);
+      const cantidad = reg && Number(reg.robotica) > 0 ? Number(reg.robotica) : item.cantidad;
+      return {
+        ...item,
+        cantidad,
+        registrado: !!reg
+      };
+    });
+
+    const total = desglose.reduce((acc, curr) => acc + curr.cantidad, 0);
+    return {
+      isRoboticaDay: true,
+      dayName: info.dayName,
+      total,
+      desglose
+    };
+  }, [selectedDate, registros]);
+
   // Recalcular y guardar totales_diarios en caliente (Mejora 3)
   useEffect(() => {
     if (!db || registros.length === 0) return;
@@ -3186,6 +3267,19 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
             );
           })()}
            {(appSettings.actividades || []).map(act => {
+             if (act.id === "robotica") {
+               const d = new Date(selectedDate + "T12:00:00");
+               const dow = d.getDay();
+               const key = `${r.curso}_${r.letra}`;
+               const isRobClass = (dow === 2 || dow === 4) && ROBOTICA_CONFIG.mapa[key];
+               const robQty = Number(r.robotica) > 0 ? Number(r.robotica) : (isRobClass ? ROBOTICA_CONFIG.mapa[key] : 0);
+               if (robQty <= 0) return null;
+               return (
+                 <span key={act.id} className="bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-200/50 dark:border-cyan-800/50 flex gap-1 items-center font-bold print:bg-transparent print:text-black">
+                   <Bot className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400"/> {robQty} Robótica (turno tardío)
+                 </span>
+               );
+             }
              const val = Number(r[act.id]) || 0;
              if (val <= 0) return null;
              const IconComponent = LucideReact[act.icon] || BookOpen;
@@ -3566,6 +3660,20 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                 </tr>
               </tbody>
             </table>
+
+            {roboticaSummary && (
+              <div style={{ marginTop: '14px', padding: '10px 14px', border: '2px solid #0891b2', borderRadius: '8px', backgroundColor: '#ecfeff', color: '#0e7490', textAlign: 'left' }}>
+                <strong style={{ fontSize: '11pt', display: 'block', marginBottom: '4px' }}>
+                  🤖 TURNO DE ROBÓTICA ({roboticaSummary.dayName.toUpperCase()}S — COMEN MÁS TARDE): {roboticaSummary.total} NIÑOS EN TOTAL
+                </strong>
+                <span style={{ fontSize: '10pt', display: 'block', marginBottom: '4px' }}>
+                  Desglose por aula: {roboticaSummary.desglose.map(i => `${i.clase}: ${i.cantidad} niños`).join(" • ")}
+                </span>
+                <span style={{ fontSize: '9pt', fontStyle: 'italic', color: '#334155' }}>
+                  * Nota para cocina: Estos {roboticaSummary.total} alumnos acuden a robótica antes de comer y acceden al comedor en el turno tardío. Sus tutores ya los han contado dentro del total de platos de cada día.
+                </span>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -4068,6 +4176,45 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                 </div>
               </div>
             </div>
+
+            {/* Bloque Especial: Turno de Robótica (Martes y Jueves) */}
+            {roboticaSummary && (
+              <div className="relative z-10 pt-3.5 pb-1 border-t border-white/15 print:border-black">
+                <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20 print:bg-slate-50 print:border-slate-300 text-left space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10 print:border-slate-200">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-cyan-400/20 text-cyan-200 print:text-black">
+                        <Bot className="w-5 h-5 text-cyan-200 print:text-black" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-black uppercase tracking-wider text-cyan-200 print:text-black">
+                            🤖 Turno de Robótica • Comen Más Tarde:
+                          </span>
+                          <span className="bg-white/20 text-white print:text-black font-black px-2.5 py-0.5 rounded-full text-xs">
+                            {roboticaSummary.total} niños en total
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-emerald-100/90 print:text-slate-700 font-semibold block mt-0.5">
+                          {roboticaSummary.dayName}s: Van a robótica lo que supone que van al comedor pero más tarde (el profesorado los cuenta en el total de cada día).
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desglose por aula */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {roboticaSummary.desglose.map(item => (
+                      <div key={item.clase} className="bg-white/15 rounded-xl py-2 px-3 text-center border border-white/10 print:bg-white print:border-slate-200 shadow-xs">
+                        <span className="text-[11px] font-extrabold text-cyan-100 print:text-slate-600 block">{item.clase}</span>
+                        <span className="text-lg font-black text-white print:text-black block">{item.cantidad} niños</span>
+                        <span className="text-[9.5px] text-emerald-100/80 print:text-slate-500 font-medium block">turno tardío</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Bloque 3: Fila Operativa Rápida: Docentes & Picnics */}
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-3 text-xs font-medium print:text-black print:border-slate-300">
