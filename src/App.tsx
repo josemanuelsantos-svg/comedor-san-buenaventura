@@ -265,6 +265,41 @@ const logAuditEvent = async (params) => {
   }
 };
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary capturó un error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 p-6 rounded-2xl text-center space-y-4 my-6">
+          <div className="text-red-600 dark:text-red-400 font-black text-lg">
+            ⚠️ Ha ocurrido un problema al mostrar esta vista
+          </div>
+          <p className="text-xs text-slate-600 dark:text-slate-300">
+            {this.state.error?.message || "Error inesperado al renderizar el contenido."}
+          </p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
+          >
+            Reintentar
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Componente principal de la App
 export default function App() {
   const [currentUser, setCurrentUser] = useState({
@@ -580,45 +615,47 @@ export default function App() {
 
       {/* Contenido Principal */}
       <main className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none">
-        {view === "teacher" && (
-          <TeacherView 
-            db={db} 
-            user={currentUser} 
-            registrosHoy={registros} 
-            appSettings={appSettings}
-            showToast={showToast}
-          />
-        )}
-        {view === "admin" && (
-          <AdminView 
-            registros={registros} 
-            selectedDate={selectedDate} 
-            setSelectedDate={setSelectedDate} 
-            loading={loadingData}
-            dataError={dataError}
-            onRetry={() => {
-              setLoadingData(true);
-              setDataError(null);
-            }}
-            appSettings={appSettings}
-            showToast={showToast}
-            db={db}
-            currentUser={currentUser}
-            setView={setView}
-            setSettingsInitialTab={setSettingsInitialTab}
-          />
-        )}
-        {view === "settings" && (
-          <SettingsView 
-            settings={appSettings} 
-            onSave={saveSettings} 
-            onReset={() => saveSettings(DEFAULT_SETTINGS)} 
-            db={db}
-            showToast={showToast}
-            currentUser={currentUser}
-            initialTab={settingsInitialTab}
-          />
-        )}
+        <ErrorBoundary>
+          {view === "teacher" && (
+            <TeacherView 
+              db={db} 
+              user={currentUser} 
+              registrosHoy={registros} 
+              appSettings={appSettings}
+              showToast={showToast}
+            />
+          )}
+          {view === "admin" && (
+            <AdminView 
+              registros={registros} 
+              selectedDate={selectedDate} 
+              setSelectedDate={setSelectedDate} 
+              loading={loadingData}
+              dataError={dataError}
+              onRetry={() => {
+                setLoadingData(true);
+                setDataError(null);
+              }}
+              appSettings={appSettings}
+              showToast={showToast}
+              db={db}
+              currentUser={currentUser}
+              setView={setView}
+              setSettingsInitialTab={setSettingsInitialTab}
+            />
+          )}
+          {view === "settings" && (
+            <SettingsView 
+              settings={appSettings} 
+              onSave={saveSettings} 
+              onReset={() => saveSettings(DEFAULT_SETTINGS)} 
+              db={db}
+              showToast={showToast}
+              currentUser={currentUser}
+              initialTab={settingsInitialTab}
+            />
+          )}
+        </ErrorBoundary>
       </main>
     </div>
   );
@@ -690,6 +727,15 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
     if (!formData.etapa || !formData.curso || !formData.letra) return null;
     return `last_sub_${formData.etapa}_${formData.curso}_${formData.letra}`;
   }, [formData.etapa, formData.curso, formData.letra]);
+
+  const hasLastSub = useMemo(() => {
+    if (!lastSubKey) return false;
+    try {
+      return !!localStorage.getItem(lastSubKey);
+    } catch (e) {
+      return false;
+    }
+  }, [lastSubKey]);
 
   // Reiniciar estado de asistencia al cambiar de clase y auto-asignar robótica si aplica
   useEffect(() => {
@@ -816,10 +862,10 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
       if (act.id === "robotica") {
         return !!isRobClass;
       }
-      if (!act.cursos.includes(formData.curso)) return false;
+      if (!act.cursos || !Array.isArray(act.cursos) || !act.cursos.includes(formData.curso)) return false;
       
       const days = act.schedule?.[formData.curso] || [];
-      return days.includes(dayOfWeek);
+      return Array.isArray(days) && days.includes(dayOfWeek);
     });
   }, [formData.etapa, formData.curso, formData.letra, appSettings.actividades]);
 
@@ -1541,13 +1587,13 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                         </div>
                       </div>
                     )}
-                    {yaRegistrado.ausencias && yaRegistrado.ausencias.trim() && (
+                    {yaRegistrado.ausencias && typeof yaRegistrado.ausencias === 'string' && yaRegistrado.ausencias.trim() && (
                       <div className="border-b dark:border-slate-800 pb-1.5">
                         <span className="text-slate-500 dark:text-slate-400 font-medium block mb-1">Alumnos alérgicos ausentes (No preparar):</span> 
                         <span className="text-red-600 dark:text-red-400 font-bold text-[11px]">{yaRegistrado.ausencias}</span>
                       </div>
                     )}
-                    {yaRegistrado.observaciones && yaRegistrado.observaciones.trim() && (
+                    {yaRegistrado.observaciones && typeof yaRegistrado.observaciones === 'string' && yaRegistrado.observaciones.trim() && (
                       <div className="border-b dark:border-slate-800 pb-1.5">
                         <span className="text-slate-500 dark:text-slate-400 font-medium block mb-1">Observaciones del aula:</span> 
                         <p className="text-slate-700 dark:text-slate-300 italic font-semibold text-[11px]">"{yaRegistrado.observaciones}"</p>
