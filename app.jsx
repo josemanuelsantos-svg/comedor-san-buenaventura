@@ -100,9 +100,9 @@ const DEFAULT_SETTINGS = {
       id: "catequesis",
       nombre: "Catequesis",
       etapa: "Primaria",
-      cursos: ["3º"],
-      // Mapeo de días de la semana (2 = Martes)
-      schedule: { "3º": [2] },
+      cursos: ["3º", "4º"],
+      // Mapeo de días de la semana (1 = Lunes, 2 = Martes)
+      schedule: { "3º": [2], "4º": [1] },
       icon: "BookOpen"
     },
     {
@@ -863,8 +863,11 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
         return !!isRobClass;
       }
       if (act.id === "catequesis") {
-        // Solo ocurrirá los martes en 3º de Primaria
-        return formData.etapa === "Primaria" && formData.curso === "3º" && dayOfWeek === 2;
+        // Lunes en 4º de Primaria o Martes en 3º de Primaria
+        return formData.etapa === "Primaria" && (
+          (formData.curso === "3º" && dayOfWeek === 2) ||
+          (formData.curso === "4º" && dayOfWeek === 1)
+        );
       }
       if (!act.cursos || !Array.isArray(act.cursos) || !act.cursos.includes(formData.curso)) return false;
       
@@ -1817,7 +1820,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                           )}
                           {act.id === "catequesis" && (
                             <div className="text-[11px] font-medium text-amber-900 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/70 dark:border-amber-800/60 text-left">
-                              📖 <strong>Catequesis (Martes en 3º):</strong> Pon cuántos de los comensales tienen catequesis hoy. Recuerda que <span className="underline">ya deben estar incluidos</span> en el número total de comensales de arriba.
+                              📖 <strong>Catequesis ({formData.curso === "4º" ? "Lunes en 4º" : "Martes en 3º"}):</strong> Pon cuántos de los comensales tienen catequesis hoy. Recuerda que <span className="underline">ya deben estar incluidos</span> en el número total de comensales de arriba.
                             </div>
                           )}
                         </div>
@@ -2504,29 +2507,31 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
     const cursosPriMap = {};
     const gruposPriMap = {};
     const catequesisPriMap = {};
+    const totCatequesisPorCurso = {};
     cursosPriOrder.forEach(c => { 
       cursosPriMap[c] = 0; 
+      totCatequesisPorCurso[c] = 0;
       letrasList.forEach(l => {
         gruposPriMap[`${c} ${l}`] = 0;
         catequesisPriMap[`${c} ${l}`] = 0;
       });
     });
-    let totCatequesis3ro = 0;
     primaria.forEach(r => {
       const f = Number(r.fijos) || 0;
       const tk = Number(r.tickets) || 0;
       const t = f + tk;
       if (cursosPriMap[r.curso] === undefined) {
         cursosPriMap[r.curso] = 0;
+        totCatequesisPorCurso[r.curso] = 0;
         cursosPriOrder.push(r.curso);
       }
       cursosPriMap[r.curso] += t;
       const grupoKey = `${r.curso} ${r.letra}`;
       gruposPriMap[grupoKey] = (gruposPriMap[grupoKey] || 0) + t;
 
-      if (r.curso === "3º") {
-        const cat = Number(r.catequesis) || 0;
-        totCatequesis3ro += cat;
+      const cat = Number(r.catequesis) || 0;
+      if (cat > 0) {
+        totCatequesisPorCurso[r.curso] = (totCatequesisPorCurso[r.curso] || 0) + cat;
         catequesisPriMap[grupoKey] = cat;
       }
     });
@@ -2535,13 +2540,13 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
         letra: l,
         clase: `${c} ${l}`,
         total: gruposPriMap[`${c} ${l}`] || 0,
-        catequesis: c === "3º" ? (catequesisPriMap[`${c} ${l}`] || 0) : 0
+        catequesis: catequesisPriMap[`${c} ${l}`] || 0
       }));
       return {
         curso: c,
         total: cursosPriMap[c] || 0,
         grupos,
-        totCatequesis: c === "3º" ? totCatequesis3ro : 0
+        totCatequesis: totCatequesisPorCurso[c] || 0
       };
     });
 
@@ -2579,7 +2584,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
       profesoresPrimaria,
       totalesCursosInfantil,
       totalesCursosPrimaria,
-      totCatequesis: totCatequesis3ro
+      totCatequesis: Object.values(totCatequesisPorCurso).reduce((a, b) => a + b, 0)
     };
   }, [registros, appSettings]);
 
@@ -2608,37 +2613,66 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
     };
   }, [selectedDate, registros]);
 
-  // Resumen de catequesis para Martes en 3º de Primaria
+  // Resumen de catequesis para Lunes en 4º y Martes en 3º de Primaria
   const catequesisSummary = useMemo(() => {
     if (!selectedDate) return null;
     const d = new Date(selectedDate + "T12:00:00");
     const dow = d.getDay();
+    const isMonday = dow === 1;
     const isTuesday = dow === 2;
-    const tieneCatequesis = registros.some(r => r.etapa === "Primaria" && r.curso === "3º" && Number(r.catequesis) > 0);
-    if (!isTuesday && !tieneCatequesis) return null;
+
+    const cursosTarget = [];
+    if (isMonday) cursosTarget.push("4º");
+    if (isTuesday) cursosTarget.push("3º");
+
+    // Incluir cualquier curso de Primaria que tenga catequesis registrada aunque no sea su día típico
+    registros.forEach(r => {
+      if (r.etapa === "Primaria" && Number(r.catequesis) > 0 && !cursosTarget.includes(r.curso)) {
+        cursosTarget.push(r.curso);
+      }
+    });
+
+    if (cursosTarget.length === 0) return null;
 
     const letrasList = appSettings?.letras || ["A", "B", "C"];
-    const desglose = letrasList.map(letra => {
-      const reg = registros.find(r => r.etapa === "Primaria" && r.curso === "3º" && r.letra === letra);
-      const comensales = reg ? (Number(reg.fijos) || 0) + (Number(reg.tickets) || 0) : 0;
-      const catequesis = reg ? (Number(reg.catequesis) || 0) : 0;
+    const cursosData = cursosTarget.map(curso => {
+      const desglose = letrasList.map(letra => {
+        const reg = registros.find(r => r.etapa === "Primaria" && r.curso === curso && r.letra === letra);
+        const comensales = reg ? (Number(reg.fijos) || 0) + (Number(reg.tickets) || 0) : 0;
+        const catequesis = reg ? (Number(reg.catequesis) || 0) : 0;
+        return {
+          clase: `${curso} ${letra}`,
+          letra,
+          comensales,
+          catequesis,
+          registrado: !!reg
+        };
+      });
+
+      const totalComensales = desglose.reduce((acc, curr) => acc + curr.comensales, 0);
+      const totalCatequesis = desglose.reduce((acc, curr) => acc + curr.catequesis, 0);
+      const diaTexto = curso === "4º" ? "Lunes" : (curso === "3º" ? "Martes" : "Día especial");
+
       return {
-        clase: `3º ${letra}`,
-        letra,
-        comensales,
-        catequesis,
-        registrado: !!reg
+        curso,
+        diaTexto,
+        totalComensales,
+        totalCatequesis,
+        desglose
       };
     });
 
-    const totalComensales = desglose.reduce((acc, curr) => acc + curr.comensales, 0);
-    const totalCatequesis = desglose.reduce((acc, curr) => acc + curr.catequesis, 0);
+    const totalComensalesGlobal = cursosData.reduce((acc, c) => acc + c.totalComensales, 0);
+    const totalCatequesisGlobal = cursosData.reduce((acc, c) => acc + c.totalCatequesis, 0);
 
     return {
+      dow,
+      isMonday,
       isTuesday,
-      totalComensales,
-      totalCatequesis,
-      desglose
+      totalComensales: totalComensalesGlobal,
+      totalCatequesis: totalCatequesisGlobal,
+      cursosData,
+      desglose: cursosData.flatMap(c => c.desglose)
     };
   }, [selectedDate, registros, appSettings]);
 
@@ -3436,19 +3470,19 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
               </div>
             )}
 
-            {catequesisSummary && (
-              <div style={{ marginTop: '14px', padding: '10px 14px', border: '2px solid #d97706', borderRadius: '8px', backgroundColor: '#fffbeb', color: '#92400e', textAlign: 'left' }}>
+            {catequesisSummary && catequesisSummary.cursosData.map(cData => (
+              <div key={cData.curso} style={{ marginTop: '14px', padding: '10px 14px', border: '2px solid #d97706', borderRadius: '8px', backgroundColor: '#fffbeb', color: '#92400e', textAlign: 'left' }}>
                 <strong style={{ fontSize: '11pt', display: 'block', marginBottom: '4px' }}>
-                  📖 CATEQUESIS (MARTES — 3º DE PRIMARIA): {catequesisSummary.totalCatequesis} EN CATEQUESIS (TOTAL COMENSALES 3º: {catequesisSummary.totalComensales})
+                  📖 CATEQUESIS ({cData.diaTexto.toUpperCase()} — {cData.curso} DE PRIMARIA): {cData.totalCatequesis} EN CATEQUESIS (TOTAL COMENSALES {cData.curso}: {cData.totalComensales})
                 </strong>
                 <span style={{ fontSize: '10pt', display: 'block', marginBottom: '4px' }}>
-                  Desglose por aula: {catequesisSummary.desglose.map(i => `${i.clase}: ${i.catequesis} catequesis (${i.comensales} comensales totales)`).join(" • ")}
+                  Desglose por aula: {cData.desglose.map(i => `${i.clase}: ${i.catequesis} catequesis (${i.comensales} comensales totales)`).join(" • ")}
                 </span>
                 <span style={{ fontSize: '9pt', fontStyle: 'italic', color: '#78350f' }}>
-                  * Nota para comedor/cocina: Alumnos de 3º que asisten a catequesis los martes. Los tutores ya los han incluido en el cómputo total de comensales.
+                  * Nota para comedor/cocina: Alumnos de {cData.curso} que asisten a catequesis los {cData.diaTexto.toLowerCase()}s. Los tutores ya los han incluido en el cómputo total de comensales.
                 </span>
               </div>
-            )}
+            ))}
           </>
         )}
       </div>
@@ -3928,37 +3962,40 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
 
                   {/* Resumen de Primaria por Cursos y Grupos Activos */}
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {stats.totalesCursosPrimaria.map(c => (
-                      <div key={c.curso} className="bg-white/10 rounded-xl py-2 px-1.5 text-center border border-white/10 print:bg-white print:border-slate-200 shadow-xs flex flex-col justify-between">
-                        <div>
-                          <span className="text-[10px] font-bold text-blue-100 print:text-slate-600 block">{c.curso} Pri</span>
-                          <span className="text-lg md:text-xl font-black text-white print:text-black block">{c.total}</span>
-                          {c.curso === "3º" && (catequesisSummary || c.totCatequesis > 0) && (
-                            <span className="text-[9.5px] font-black bg-amber-400/30 text-amber-100 print:text-amber-900 px-1.5 py-0.5 rounded-md inline-block mt-0.5">
-                              📖 {c.totCatequesis} cat
-                            </span>
+                    {stats.totalesCursosPrimaria.map(c => {
+                      const tieneCat = c.totCatequesis > 0 || (catequesisSummary && catequesisSummary.cursosData.some(cd => cd.curso === c.curso));
+                      return (
+                        <div key={c.curso} className="bg-white/10 rounded-xl py-2 px-1.5 text-center border border-white/10 print:bg-white print:border-slate-200 shadow-xs flex flex-col justify-between">
+                          <div>
+                            <span className="text-[10px] font-bold text-blue-100 print:text-slate-600 block">{c.curso} Pri</span>
+                            <span className="text-lg md:text-xl font-black text-white print:text-black block">{c.total}</span>
+                            {tieneCat && (
+                              <span className="text-[9.5px] font-black bg-amber-400/30 text-amber-100 print:text-amber-900 px-1.5 py-0.5 rounded-md inline-block mt-0.5">
+                                📖 {c.totCatequesis} cat
+                              </span>
+                            )}
+                          </div>
+                          {/* Desglose de grupos con comensales si los hay */}
+                          {(c.total > 0 || tieneCat) && (
+                            <div className="mt-1 pt-1 border-t border-white/15 text-[9.5px] text-blue-100 font-semibold space-y-0.5">
+                              {c.grupos.filter(g => g.total > 0 || tieneCat).map(g => (
+                                <div key={g.clase} className="flex justify-between px-0.5 items-center">
+                                  <span>{g.letra}:</span>
+                                  <span className="text-right">
+                                    <strong className="text-white print:text-black">{g.total}</strong>
+                                    {tieneCat && (
+                                      <span className="ml-1 text-[8.5px] text-amber-200 print:text-amber-800 font-bold">
+                                        ({g.catequesis} cat)
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
-                        {/* Desglose de grupos con comensales si los hay */}
-                        {(c.total > 0 || (c.curso === "3º" && catequesisSummary)) && (
-                          <div className="mt-1 pt-1 border-t border-white/15 text-[9.5px] text-blue-100 font-semibold space-y-0.5">
-                            {c.grupos.filter(g => g.total > 0 || (c.curso === "3º" && catequesisSummary)).map(g => (
-                              <div key={g.clase} className="flex justify-between px-0.5 items-center">
-                                <span>{g.letra}:</span>
-                                <span className="text-right">
-                                  <strong className="text-white print:text-black">{g.total}</strong>
-                                  {c.curso === "3º" && (catequesisSummary || c.totCatequesis > 0) && (
-                                    <span className="ml-1 text-[8.5px] text-amber-200 print:text-amber-800 font-bold">
-                                      ({g.catequesis} cat)
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -4003,9 +4040,9 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
               </div>
             )}
 
-            {/* Bloque Especial: Catequesis (Martes en 3º de Primaria) */}
-            {catequesisSummary && (
-              <div className="relative z-10 pt-3.5 pb-1 border-t border-white/15 print:border-black">
+            {/* Bloque Especial: Catequesis (Lunes en 4º / Martes en 3º de Primaria) */}
+            {catequesisSummary && catequesisSummary.cursosData.map(cData => (
+              <div key={cData.curso} className="relative z-10 pt-3.5 pb-1 border-t border-white/15 print:border-black">
                 <div className="bg-amber-500/20 backdrop-blur-sm rounded-2xl p-4 border border-amber-300/30 print:bg-amber-50 print:border-amber-300 text-left space-y-2.5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10 print:border-amber-200">
                     <div className="flex items-center gap-2.5">
@@ -4015,22 +4052,22 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-black uppercase tracking-wider text-amber-200 print:text-amber-900">
-                            📖 Catequesis • Martes (3º de Primaria):
+                            📖 Catequesis • {cData.diaTexto} ({cData.curso} de Primaria):
                           </span>
                           <span className="bg-amber-400/30 text-amber-100 print:text-amber-900 font-black px-2.5 py-0.5 rounded-full text-xs">
-                            {catequesisSummary.totalCatequesis} en catequesis de {catequesisSummary.totalComensales} comensales en total
+                            {cData.totalCatequesis} en catequesis de {cData.totalComensales} comensales en total
                           </span>
                         </div>
                         <span className="text-[11px] text-amber-100/90 print:text-slate-700 font-semibold block mt-0.5">
-                          Martes en 3º de Primaria: Alumnos que asisten a catequesis y total de comensales (contados por el tutor/a en el total de comensales).
+                          {cData.diaTexto}s en {cData.curso} de Primaria: Alumnos que asisten a catequesis y total de comensales (contados por el tutor/a en el total de comensales).
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Desglose por aula de 3º */}
+                  {/* Desglose por aula */}
                   <div className="grid grid-cols-3 gap-2">
-                    {catequesisSummary.desglose.map(item => (
+                    {cData.desglose.map(item => (
                       <div key={item.clase} className="bg-white/15 rounded-xl py-2 px-3 text-center border border-white/10 print:bg-white print:border-amber-200 shadow-xs">
                         <span className="text-[11px] font-extrabold text-amber-100 print:text-slate-800 block">{item.clase}</span>
                         <div className="mt-1 flex flex-col items-center justify-center">
@@ -4046,7 +4083,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                   </div>
                 </div>
               </div>
-            )}
+            ))}
 
             {/* Bloque 3: Fila Operativa Rápida: Docentes & Picnics */}
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-3 text-xs font-medium print:text-black print:border-slate-300">
