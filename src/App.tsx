@@ -100,9 +100,9 @@ const DEFAULT_SETTINGS = {
       id: "catequesis",
       nombre: "Catequesis",
       etapa: "Primaria",
-      cursos: ["3º", "4º"],
-      // Mapeo de días de la semana (1=Lunes, 2=Martes, etc.)
-      schedule: { "3º": [1], "4º": [2] },
+      cursos: ["3º"],
+      // Mapeo de días de la semana (2 = Martes)
+      schedule: { "3º": [2] },
       icon: "BookOpen"
     },
     {
@@ -862,6 +862,10 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
       if (act.id === "robotica") {
         return !!isRobClass;
       }
+      if (act.id === "catequesis") {
+        // Solo ocurrirá los martes en 3º de Primaria
+        return formData.etapa === "Primaria" && formData.curso === "3º" && dayOfWeek === 2;
+      }
       if (!act.cursos || !Array.isArray(act.cursos) || !act.cursos.includes(formData.curso)) return false;
       
       const days = act.schedule?.[formData.curso] || [];
@@ -1599,6 +1603,18 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                         <p className="text-slate-700 dark:text-slate-300 italic font-semibold text-[11px]">"{yaRegistrado.observaciones}"</p>
                       </div>
                     )}
+                    {Number(yaRegistrado.catequesis) > 0 && (
+                      <div className="flex justify-between border-b dark:border-slate-800 pb-1.5 font-bold text-amber-700 dark:text-amber-400">
+                        <span>Alumnos con Catequesis:</span> 
+                        <span className="text-sm font-black">{yaRegistrado.catequesis}</span>
+                      </div>
+                    )}
+                    {Number(yaRegistrado.robotica) > 0 && (
+                      <div className="flex justify-between border-b dark:border-slate-800 pb-1.5 font-bold text-cyan-700 dark:text-cyan-400">
+                        <span>Alumnos en Robótica (Turno tardío):</span> 
+                        <span className="text-sm font-black">{yaRegistrado.robotica}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-extrabold text-blue-700 dark:text-blue-400 pt-1 text-sm">
                       <span>Total Platos a Preparar:</span> 
                       <span className="text-base font-black">{(Number(yaRegistrado.fijos) || 0) + (Number(yaRegistrado.tickets) || 0)}</span>
@@ -1773,15 +1789,22 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                               <button 
                                 type="button"
                                 onClick={() => adjustValue(act.id, -1)} 
-                                className="btn-hover-effect w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center"
+                                className="btn-hover-effect w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center text-sm shadow-sm"
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
-                              <span className="w-8 text-center font-bold text-slate-850 dark:text-slate-200">{formData[act.id] || 0}</span>
+                              <input 
+                                type="number"
+                                min="0"
+                                max={appSettings.maxComensales}
+                                value={formData[act.id] !== undefined ? formData[act.id] : 0}
+                                onChange={e => handleInputChange(act.id, e.target.value)}
+                                className="w-12 py-1 text-center font-bold text-base text-slate-850 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                              />
                               <button 
                                 type="button"
                                 onClick={() => adjustValue(act.id, 1)} 
-                                className="btn-hover-effect w-7 h-7 rounded-lg bg-blue-650 text-white font-bold flex items-center justify-center"
+                                className="btn-hover-effect w-8 h-8 rounded-lg bg-blue-650 text-white font-bold flex items-center justify-center text-sm shadow-sm"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
@@ -1790,6 +1813,11 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                           {act.id === "robotica" && (
                             <div className="text-[11px] font-medium text-cyan-850 dark:text-cyan-200 bg-cyan-50/80 dark:bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-200/60 dark:border-cyan-800/50 text-left">
                               🤖 <strong>Turno tardío:</strong> Van a robótica y comen más tarde en el comedor. Recuerda que <span className="underline">debes contarlos</span> en el total de comensales (Fijos).
+                            </div>
+                          )}
+                          {act.id === "catequesis" && (
+                            <div className="text-[11px] font-medium text-amber-900 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/70 dark:border-amber-800/60 text-left">
+                              📖 <strong>Catequesis (Martes en 3º):</strong> Pon cuántos de los comensales tienen catequesis hoy. Recuerda que <span className="underline">ya deben estar incluidos</span> en el número total de comensales de arriba.
                             </div>
                           )}
                         </div>
@@ -2475,12 +2503,15 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
     const cursosPriOrder = [...(appSettings?.cursosPrimaria || ["1º", "2º", "3º", "4º", "5º", "6º"])];
     const cursosPriMap = {};
     const gruposPriMap = {};
+    const catequesisPriMap = {};
     cursosPriOrder.forEach(c => { 
       cursosPriMap[c] = 0; 
       letrasList.forEach(l => {
         gruposPriMap[`${c} ${l}`] = 0;
+        catequesisPriMap[`${c} ${l}`] = 0;
       });
     });
+    let totCatequesis3ro = 0;
     primaria.forEach(r => {
       const f = Number(r.fijos) || 0;
       const tk = Number(r.tickets) || 0;
@@ -2492,17 +2523,25 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
       cursosPriMap[r.curso] += t;
       const grupoKey = `${r.curso} ${r.letra}`;
       gruposPriMap[grupoKey] = (gruposPriMap[grupoKey] || 0) + t;
+
+      if (r.curso === "3º") {
+        const cat = Number(r.catequesis) || 0;
+        totCatequesis3ro += cat;
+        catequesisPriMap[grupoKey] = cat;
+      }
     });
     const totalesCursosPrimaria = cursosPriOrder.map(c => {
       const grupos = letrasList.map(l => ({
         letra: l,
         clase: `${c} ${l}`,
-        total: gruposPriMap[`${c} ${l}`] || 0
+        total: gruposPriMap[`${c} ${l}`] || 0,
+        catequesis: c === "3º" ? (catequesisPriMap[`${c} ${l}`] || 0) : 0
       }));
       return {
         curso: c,
         total: cursosPriMap[c] || 0,
-        grupos
+        grupos,
+        totCatequesis: c === "3º" ? totCatequesis3ro : 0
       };
     });
 
@@ -2539,7 +2578,8 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
       profesoresInfantil,
       profesoresPrimaria,
       totalesCursosInfantil,
-      totalesCursosPrimaria
+      totalesCursosPrimaria,
+      totCatequesis: totCatequesis3ro
     };
   }, [registros, appSettings]);
 
@@ -2567,6 +2607,40 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
       desglose
     };
   }, [selectedDate, registros]);
+
+  // Resumen de catequesis para Martes en 3º de Primaria
+  const catequesisSummary = useMemo(() => {
+    if (!selectedDate) return null;
+    const d = new Date(selectedDate + "T12:00:00");
+    const dow = d.getDay();
+    const isTuesday = dow === 2;
+    const tieneCatequesis = registros.some(r => r.etapa === "Primaria" && r.curso === "3º" && Number(r.catequesis) > 0);
+    if (!isTuesday && !tieneCatequesis) return null;
+
+    const letrasList = appSettings?.letras || ["A", "B", "C"];
+    const desglose = letrasList.map(letra => {
+      const reg = registros.find(r => r.etapa === "Primaria" && r.curso === "3º" && r.letra === letra);
+      const comensales = reg ? (Number(reg.fijos) || 0) + (Number(reg.tickets) || 0) : 0;
+      const catequesis = reg ? (Number(reg.catequesis) || 0) : 0;
+      return {
+        clase: `3º ${letra}`,
+        letra,
+        comensales,
+        catequesis,
+        registrado: !!reg
+      };
+    });
+
+    const totalComensales = desglose.reduce((acc, curr) => acc + curr.comensales, 0);
+    const totalCatequesis = desglose.reduce((acc, curr) => acc + curr.catequesis, 0);
+
+    return {
+      isTuesday,
+      totalComensales,
+      totalCatequesis,
+      desglose
+    };
+  }, [selectedDate, registros, appSettings]);
 
   // Recalcular y guardar totales_diarios en caliente (Mejora 3)
   useEffect(() => {
@@ -2955,6 +3029,15 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                return (
                  <span key={act.id} className="bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-200/50 dark:border-cyan-800/50 flex gap-1 items-center font-bold print:bg-transparent print:text-black">
                    <Bot className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400"/> {robQty} Robótica (turno tardío)
+                 </span>
+               );
+             }
+             if (act.id === "catequesis") {
+               const val = Number(r.catequesis) || 0;
+               if (val <= 0) return null;
+               return (
+                 <span key={act.id} className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-200/50 dark:border-amber-800/50 flex gap-1 items-center font-bold print:bg-transparent print:text-black">
+                   <BookOpen className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"/> {val} Catequesis
                  </span>
                );
              }
@@ -3349,6 +3432,20 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                 </span>
                 <span style={{ fontSize: '9pt', fontStyle: 'italic', color: '#334155' }}>
                   * Nota para cocina: Estos {roboticaSummary.total} alumnos acuden a robótica antes de comer y acceden al comedor en el turno tardío. Sus tutores ya los han contado dentro del total de platos de cada día.
+                </span>
+              </div>
+            )}
+
+            {catequesisSummary && (
+              <div style={{ marginTop: '14px', padding: '10px 14px', border: '2px solid #d97706', borderRadius: '8px', backgroundColor: '#fffbeb', color: '#92400e', textAlign: 'left' }}>
+                <strong style={{ fontSize: '11pt', display: 'block', marginBottom: '4px' }}>
+                  📖 CATEQUESIS (MARTES — 3º DE PRIMARIA): {catequesisSummary.totalCatequesis} EN CATEQUESIS (TOTAL COMENSALES 3º: {catequesisSummary.totalComensales})
+                </strong>
+                <span style={{ fontSize: '10pt', display: 'block', marginBottom: '4px' }}>
+                  Desglose por aula: {catequesisSummary.desglose.map(i => `${i.clase}: ${i.catequesis} catequesis (${i.comensales} comensales totales)`).join(" • ")}
+                </span>
+                <span style={{ fontSize: '9pt', fontStyle: 'italic', color: '#78350f' }}>
+                  * Nota para comedor/cocina: Alumnos de 3º que asisten a catequesis los martes. Los tutores ya los han incluido en el cómputo total de comensales.
                 </span>
               </div>
             )}
@@ -3836,14 +3933,26 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                         <div>
                           <span className="text-[10px] font-bold text-blue-100 print:text-slate-600 block">{c.curso} Pri</span>
                           <span className="text-lg md:text-xl font-black text-white print:text-black block">{c.total}</span>
+                          {c.curso === "3º" && (catequesisSummary || c.totCatequesis > 0) && (
+                            <span className="text-[9.5px] font-black bg-amber-400/30 text-amber-100 print:text-amber-900 px-1.5 py-0.5 rounded-md inline-block mt-0.5">
+                              📖 {c.totCatequesis} cat
+                            </span>
+                          )}
                         </div>
                         {/* Desglose de grupos con comensales si los hay */}
-                        {c.total > 0 && (
+                        {(c.total > 0 || (c.curso === "3º" && catequesisSummary)) && (
                           <div className="mt-1 pt-1 border-t border-white/15 text-[9.5px] text-blue-100 font-semibold space-y-0.5">
-                            {c.grupos.filter(g => g.total > 0).map(g => (
-                              <div key={g.clase} className="flex justify-between px-0.5">
+                            {c.grupos.filter(g => g.total > 0 || (c.curso === "3º" && catequesisSummary)).map(g => (
+                              <div key={g.clase} className="flex justify-between px-0.5 items-center">
                                 <span>{g.letra}:</span>
-                                <strong className="text-white print:text-black">{g.total}</strong>
+                                <span className="text-right">
+                                  <strong className="text-white print:text-black">{g.total}</strong>
+                                  {c.curso === "3º" && (catequesisSummary || c.totCatequesis > 0) && (
+                                    <span className="ml-1 text-[8.5px] text-amber-200 print:text-amber-800 font-bold">
+                                      ({g.catequesis} cat)
+                                    </span>
+                                  )}
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -3887,6 +3996,51 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                         <span className="text-[11px] font-extrabold text-cyan-100 print:text-slate-600 block">{item.clase}</span>
                         <span className="text-lg font-black text-white print:text-black block">{item.cantidad} niños</span>
                         <span className="text-[9.5px] text-emerald-100/80 print:text-slate-500 font-medium block">turno tardío</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Bloque Especial: Catequesis (Martes en 3º de Primaria) */}
+            {catequesisSummary && (
+              <div className="relative z-10 pt-3.5 pb-1 border-t border-white/15 print:border-black">
+                <div className="bg-amber-500/20 backdrop-blur-sm rounded-2xl p-4 border border-amber-300/30 print:bg-amber-50 print:border-amber-300 text-left space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10 print:border-amber-200">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-amber-400/30 text-amber-100 print:text-amber-900">
+                        <BookOpen className="w-5 h-5 text-amber-200 print:text-amber-900" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-black uppercase tracking-wider text-amber-200 print:text-amber-900">
+                            📖 Catequesis • Martes (3º de Primaria):
+                          </span>
+                          <span className="bg-amber-400/30 text-amber-100 print:text-amber-900 font-black px-2.5 py-0.5 rounded-full text-xs">
+                            {catequesisSummary.totalCatequesis} en catequesis de {catequesisSummary.totalComensales} comensales en total
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-amber-100/90 print:text-slate-700 font-semibold block mt-0.5">
+                          Martes en 3º de Primaria: Alumnos que asisten a catequesis y total de comensales (contados por el tutor/a en el total de comensales).
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desglose por aula de 3º */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {catequesisSummary.desglose.map(item => (
+                      <div key={item.clase} className="bg-white/15 rounded-xl py-2 px-3 text-center border border-white/10 print:bg-white print:border-amber-200 shadow-xs">
+                        <span className="text-[11px] font-extrabold text-amber-100 print:text-slate-800 block">{item.clase}</span>
+                        <div className="mt-1 flex flex-col items-center justify-center">
+                          <span className="text-base sm:text-lg font-black text-white print:text-black block leading-tight">
+                            {item.comensales} <span className="text-[10px] font-medium text-amber-100/80 print:text-slate-600">comensales</span>
+                          </span>
+                          <span className="text-xs sm:text-sm font-extrabold text-amber-200 print:text-amber-700 block mt-0.5">
+                            📖 {item.catequesis} en catequesis
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
