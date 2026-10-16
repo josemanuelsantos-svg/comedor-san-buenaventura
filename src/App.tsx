@@ -470,74 +470,95 @@ export default function App() {
         ))}
       </div>
 
-      {/* Cabecera superior accesible */}
-      <header className="bg-white/80 dark:bg-slate-950/80 border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-20 shadow-sm backdrop-blur-lg print:hidden">
-        <div className="bg-slate-900 dark:bg-slate-950 text-slate-300 text-[10px] py-1 px-4 flex justify-between items-center gap-4">
-          <div className="flex items-center gap-1.5">
-             <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-green-400" : "bg-orange-500 animate-pulse"}`}></span>
-             <span className="font-semibold tracking-wide uppercase">
-               Red: {isOnline ? <span className="font-bold text-green-400 font-mono">CONECTADO</span> : <span className="font-bold text-orange-400 font-mono">SIN CONEXIÓN</span>}
-             </span>
-          </div>
-          <div className="flex flex-wrap gap-3 md:gap-4 items-center font-bold text-[10px]">
-            <a 
-              href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5"
-              title="Abrir Menú del Mes en Google Drive"
-            >
-              <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Menú del Mes</span>
-              <ExternalLink className="w-3 h-3 opacity-70" />
-            </a>
-            <a 
-              href={appSettings?.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/"} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1.5"
-              title="Abrir Gestión de Incidencias en el Comedor"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-              <span>Incidencias Comedor</span>
-              <ExternalLink className="w-3 h-3 opacity-70" />
-            </a>
-            <button onClick={() => setShowHelp(true)} className="text-slate-300 hover:text-white transition-colors flex items-center gap-1">
-              <HelpCircle className="w-3.5 h-3.5 text-blue-400" /> Ayuda
-            </button>
+      {/* Cabecera Institucional Colegio San Buenaventura (Mobile-First) */}
+      <header className="bg-white/90 dark:bg-slate-950/90 border-b border-slate-200/70 dark:border-slate-800/70 sticky top-0 z-20 shadow-sm backdrop-blur-xl print:hidden">
+        {/* Cinta Superior Institucional */}
+        <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-slate-200 text-[10px] py-1.5 px-3 sm:px-4">
+          <div className="max-w-4xl mx-auto flex justify-between items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-orange-500 animate-pulse"}`}></span>
+                <span className="font-bold tracking-wide uppercase hidden xs:inline">
+                  {isOnline ? <span className="text-emerald-400 font-mono">EN LÍNEA</span> : <span className="text-orange-400 font-mono">OFFLINE</span>}
+                </span>
+              </div>
+              <span className="text-slate-600 hidden sm:inline">•</span>
+              <span className="text-amber-300/95 font-extrabold tracking-wide truncate flex items-center gap-1">
+                <span>☦</span>
+                <span>Paz y Bien • Colegio San Buenaventura</span>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2.5 sm:gap-4 font-bold text-[10px] shrink-0">
+              <a 
+                href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-emerald-300 hover:text-emerald-200 transition-colors flex items-center gap-1 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-400/20"
+                title="Abrir Menú del Mes en Google Drive"
+              >
+                <UtensilsCrossed className="w-3 h-3 text-emerald-400" />
+                <span>Menú</span>
+                <ExternalLink className="w-2.5 h-2.5 opacity-75 hidden sm:inline" />
+              </a>
+              <a 
+                href={appSettings?.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/"} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-amber-300 hover:text-amber-200 transition-colors flex items-center gap-1 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-400/20"
+                title="Abrir Gestión de Incidencias en el Comedor"
+              >
+                <AlertTriangle className="w-3 h-3 text-amber-400" />
+                <span>Incidencias</span>
+                <ExternalLink className="w-2.5 h-2.5 opacity-75 hidden sm:inline" />
+              </a>
+              <button onClick={() => setShowHelp(true)} className="text-blue-200 hover:text-white transition-colors flex items-center gap-1">
+                <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
+                <span className="hidden sm:inline">Ayuda</span>
+              </button>
+            </div>
           </div>
         </div>
         
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="p-1.5 rounded-2xl bg-white dark:bg-slate-950 shadow-md border border-slate-200 dark:border-slate-800">
-              <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo Comedor SB" className="w-12 h-12 object-contain" />
+        {/* Barra Principal de Marca y Selector de Vistas Táctil */}
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            <div className="relative p-1.5 rounded-2xl bg-gradient-to-br from-white to-blue-50/50 dark:from-slate-900 dark:to-slate-950 shadow-md border border-blue-200/70 dark:border-slate-800 shrink-0">
+              <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Escudo Colegio San Buenaventura" className="w-10 h-10 sm:w-11 sm:h-11 object-contain" />
+              <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-950 ${loadingData ? "bg-amber-400 animate-pulse" : "bg-emerald-500"}`} title={loadingData ? "Sincronizando..." : "Sincronizado con cocina"}></span>
             </div>
-            <div>
-              <h1 className="font-black text-base leading-none text-slate-800 dark:text-slate-100">Comedor SB</h1>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className={`w-1.5 h-1.5 rounded-full ${loadingData ? "bg-amber-400 animate-pulse" : "bg-green-500"}`}></span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold tracking-wide">
-                  {loadingData ? "Sincronizando..." : "Sincronizado con cocina"}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h1 className="font-black text-sm sm:text-base leading-tight text-slate-900 dark:text-slate-100 truncate">
+                  Comedor San Buenaventura
+                </h1>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] text-blue-700 dark:text-blue-400 font-extrabold tracking-wide truncate">
+                  Hnos. Menores Capuchinos
+                </span>
+                <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold hidden sm:inline">
+                  {loadingData ? "Sincronizando..." : "Sincronizado en vivo"}
                 </span>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button 
               onClick={() => setDarkMode(!darkMode)} 
-              className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
-              title="Cambiar tema"
+              className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+              title="Cambiar tema claro / oscuro"
             >
-              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-500" />}
+              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-600" />}
             </button>
 
-            {/* Selector Directo de Vistas (1-tap, sin contraseña) */}
-            <div className="flex border border-slate-200/60 dark:border-slate-800/60 p-0.5 rounded-xl bg-slate-100/50 dark:bg-slate-900/60 shadow-inner">
+            {/* Selector Directo de Vistas (1-tap, Mobile-First, sin contraseña) */}
+            <div className="flex border border-slate-200/80 dark:border-slate-800 p-1 rounded-2xl bg-slate-100/80 dark:bg-slate-900/90 shadow-inner">
               <button 
                 onClick={() => { setView("teacher"); }} 
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "teacher" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${view === "teacher" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900"}`}
               >
                 <Users className="w-3.5 h-3.5" />
                 <span>Profesor</span>
@@ -547,7 +568,7 @@ export default function App() {
                   setSelectedDate(getLocalISODate());
                   setView("admin");
                 }} 
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "admin" ? "bg-white dark:bg-slate-800 text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${view === "admin" ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900"}`}
               >
                 <ChefHat className="w-3.5 h-3.5" />
                 <span>Cocina</span>
@@ -557,10 +578,10 @@ export default function App() {
                   setSettingsInitialTab("roster");
                   setView("settings"); 
                 }} 
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "settings" ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${view === "settings" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/20" : "text-slate-600 dark:text-slate-400 hover:text-slate-900"}`}
                 title="Acceso Admin: Gestión de Alérgicos y Patrones de Comedor"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Admin</span>
               </button>
             </div>
@@ -568,10 +589,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* Modal de Ayuda */}
+      {/* Modal de Ayuda Institucional */}
       {showHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in print:hidden">
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full shadow-2xl relative border border-slate-100 dark:border-slate-700 animate-scale-up">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl max-w-md w-full shadow-2xl relative border border-slate-100 dark:border-slate-700 animate-scale-up">
             <button 
               onClick={() => setShowHelp(false)} 
               className="absolute top-3 right-3 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-600"
@@ -580,33 +601,37 @@ export default function App() {
             </button>
             
             <div className="space-y-4 text-left">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-150 dark:border-slate-700">
-                <HelpCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <h3 className="font-extrabold text-slate-800 dark:text-slate-150 text-base">Instrucciones y Ayuda</h3>
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-150 dark:border-slate-700">
+                <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Logo SB" className="w-9 h-9 object-contain" />
+                <div>
+                  <h3 className="font-black text-slate-800 dark:text-slate-100 text-base leading-tight">Guía Rápida • Comedor SB</h3>
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">☦ Paz y Bien • Colegio San Buenaventura</span>
+                </div>
               </div>
               
               <div className="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
                 <p>
-                  Bienvenido a la aplicación de gestión del <strong>Comedor San Buenaventura</strong>:
+                  Bienvenido a la aplicación oficial de gestión del <strong>Comedor Escolar San Buenaventura</strong>:
                 </p>
                 <ul className="list-disc pl-5 space-y-1.5">
-                  <li><strong>Pasar lista rápido:</strong> Selecciona tu curso y letra, revisa comensales fijos y tickets.</li>
+                  <li><strong>Pasar lista rápido:</strong> Selecciona tu etapa, curso y letra (o cámbiala en 1 toque desde las píldoras superiores), y ajusta comensales fijos y tickets.</li>
                   <li><strong>Alergias y dietas:</strong> Pulsa [COME HOY] o [FALTA] en cada tarjeta de alumno.</li>
-                  <li><strong>Enviar a cocina:</strong> Pulsa el botón verde inferior. El registro se guarda en la nube al instante.</li>
+                  <li><strong>Catequesis y Robótica:</strong> Los lunes (4º Pri) y martes (3º Pri) se habilita Catequesis; los martes y jueves se indica el turno tardío de Robótica.</li>
+                  <li><strong>Enviar a cocina:</strong> Pulsa el botón inferior. El registro se sincroniza en tiempo real.</li>
                   <li>
-                    <strong>Menú del Mes:</strong> Consulta la programación de comidas en <a href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-bold underline inline-flex items-center gap-0.5">Menú del Mes (Drive) <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
+                    <strong>Menú del Mes:</strong> Consulta los platos en <a href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-bold underline inline-flex items-center gap-0.5">Menú del Mes (Drive) <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
                   </li>
                   <li>
-                    <strong>Gestión de Incidencias:</strong> Para reportar o consultar incidencias operativas del comedor escolar, accede al <a href={appSettings?.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/"} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-bold underline inline-flex items-center gap-0.5">Portal de Incidencias <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
+                    <strong>Gestión de Incidencias:</strong> Accede al <a href={appSettings?.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/"} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-bold underline inline-flex items-center gap-0.5">Portal de Incidencias <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
                   </li>
                 </ul>
               </div>
               
               <button 
                 onClick={() => setShowHelp(false)} 
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md text-xs transition-all"
+                className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-md text-xs transition-all"
               >
-                Entendido
+                Entendido • Paz y Bien
               </button>
             </div>
           </div>
@@ -614,7 +639,7 @@ export default function App() {
       )}
 
       {/* Contenido Principal */}
-      <main className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none">
+      <main className="max-w-4xl mx-auto p-3 sm:p-4 print:p-0 print:max-w-none">
         <ErrorBoundary>
           {view === "teacher" && (
             <TeacherView 
@@ -657,6 +682,19 @@ export default function App() {
           )}
         </ErrorBoundary>
       </main>
+
+      {/* Pie de Página Institucional */}
+      <footer className="max-w-4xl mx-auto px-4 pt-6 pb-8 text-center print:hidden">
+        <div className="inline-flex flex-col items-center gap-1.5 px-5 py-3 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-sm shadow-xs">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-slate-700 dark:text-slate-300">
+            <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Escudo SB" className="w-5 h-5 object-contain" />
+            <span>Colegio San Buenaventura • Hnos. Menores Capuchinos</span>
+          </div>
+          <p className="text-[10.5px] font-semibold text-amber-700 dark:text-amber-400">
+            ☦ «Paz y Bien» • Servicio de Comedor Escolar y Nutrición
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -1346,21 +1384,99 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
     }
   };
 
+  const todayDateFormatted = useMemo(() => {
+    try {
+      const str = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    } catch (e) {
+      return getLocalISODate();
+    }
+  }, []);
+
+  const institutionalGreeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 14) return "¡Buenos días! Paz y Bien";
+    if (h < 20) return "¡Buenas tardes! Paz y Bien";
+    return "¡Buenas noches! Paz y Bien";
+  }, []);
+
+  const todaySpecialBanner = useMemo(() => {
+    const dow = new Date().getDay();
+    if (dow === 1) return { icon: "📖", text: "Hoy Lunes: Catequesis en 4º de Primaria", tone: "amber" };
+    if (dow === 2) return { icon: "📖🤖", text: "Hoy Martes: Catequesis (3º Pri) y Turno de Robótica", tone: "amber" };
+    if (dow === 4) return { icon: "🤖", text: "Hoy Jueves: Turno de Robótica (4ºA, 4ºC, 5ºC, 6ºA, 6ºC)", tone: "cyan" };
+    return { icon: "🍽️", text: "Servicio diario de Comedor Escolar San Buenaventura", tone: "blue" };
+  }, []);
+
+  const findGroupRecord = (etp, crs, ltr) => {
+    return (registrosHoy || []).find(r => r.etapa === etp && r.curso === crs && r.letra === ltr);
+  };
+
+  const countStageRegistered = (etp) => {
+    return (registrosHoy || []).filter(r => r.etapa === etp).length;
+  };
+
   if (completed) return (
-    <div className="flex flex-col items-center justify-center py-16 text-center animate-scale-up">
-      <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 max-w-sm w-full flex flex-col items-center">
-        <div className="w-20 h-20 bg-green-100 dark:bg-green-955/30 rounded-full flex items-center justify-center mb-4 text-green-500 shadow-inner">
+    <div className="flex flex-col items-center justify-center py-8 sm:py-14 text-center animate-scale-up px-2">
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 max-w-md w-full flex flex-col items-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 via-emerald-500 to-amber-500"></div>
+        
+        <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-950/60 dark:to-teal-900/30 rounded-3xl flex items-center justify-center mb-4 text-emerald-600 dark:text-emerald-400 shadow-inner border border-emerald-200/60 dark:border-emerald-800/50">
           <ClipboardCheck className="w-10 h-10" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-105 mb-2">¡Datos Enviados!</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">
-          El grupo <span className="font-bold text-slate-700 dark:text-slate-205">{formData.curso} {formData.letra} ({formData.etapa})</span> se ha registrado correctamente en cocina.
+
+        <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-3 py-1 rounded-full border border-amber-200/60 dark:border-amber-800/50 mb-2">
+          ☦ Paz y Bien • Registro Confirmado
+        </span>
+
+        <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-1">¡Datos Enviados a Cocina!</h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-4 text-xs sm:text-sm">
+          El aula <span className="font-black text-blue-600 dark:text-blue-400">{formData.curso} {formData.letra} ({formData.etapa})</span> ya está sincronizada con <strong className="text-slate-800 dark:text-slate-200">{currentTotal} platos</strong>.
         </p>
+
+        {/* Acceso rápido para pasar lista a otra letra del mismo curso en 1 toque */}
+        {formData.etapa && formData.curso && (
+          <div className="w-full bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800 mb-4">
+            <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-400 mb-2">
+              ¿Pasar lista a otro grupo de {formData.curso} {formData.etapa}?
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              {(appSettings.letras || ["A", "B", "C"]).map(ltr => {
+                const isDone = !!findGroupRecord(formData.etapa, formData.curso, ltr);
+                return (
+                  <button
+                    key={ltr}
+                    type="button"
+                    onClick={() => {
+                      setCompleted(false);
+                      setIsEditing(false);
+                      setFormData(prev => ({ ...prev, letra: ltr }));
+                      setStep(3);
+                    }}
+                    className={`py-2 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 border transition-all active:scale-95 ${
+                      isDone
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:border-blue-400 shadow-xs"
+                    }`}
+                  >
+                    <span>{formData.curso} {ltr}</span>
+                    {isDone && <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="w-full bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/40 rounded-2xl p-3 mb-5 text-[11px] text-amber-900 dark:text-amber-200 italic font-medium">
+          «Comienza haciendo lo que es necesario, después lo que es posible...» — Gracias por cuidar de nuestros alumnos en San Buenaventura.
+        </div>
+
         <button 
           onClick={resetForm} 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-sm"
+          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-3.5 rounded-2xl shadow-lg shadow-blue-500/25 active:scale-95 transition-all text-xs uppercase tracking-wider"
         >
-          Registrar otro grupo
+          Registrar otro curso o etapa
         </button>
       </div>
     </div>
@@ -1368,28 +1484,67 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
 
   return (
     <div className="glass-panel rounded-3xl overflow-hidden shadow-xl animate-scale-up">
-      {/* Barra de Progreso Visual */}
-      <div className="flex items-center justify-between px-8 py-5 border-b border-slate-200/50 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/20">
+      {/* Banner Institucional de Bienvenida y Contexto Diario */}
+      <div className="sb-hero-gradient px-4 sm:px-6 py-4 text-white relative overflow-hidden">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1 text-left">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-black uppercase tracking-widest bg-amber-400/25 text-amber-200 border border-amber-300/30 px-2.5 py-0.5 rounded-full">
+                ☦ {institutionalGreeting}
+              </span>
+              <span className="text-[11px] font-bold text-blue-100/90 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-emerald-300" />
+                <span>{todayDateFormatted}</span>
+              </span>
+            </div>
+            <div className="text-xs sm:text-sm font-extrabold text-white/95 flex items-center gap-1.5 pt-0.5">
+              <span>{todaySpecialBanner.icon}</span>
+              <span>{todaySpecialBanner.text}</span>
+            </div>
+          </div>
+
+          <a 
+            href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="self-start sm:self-center px-3.5 py-2 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white border border-white/25 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
+            title="Abrir el menú del mes en Google Drive"
+          >
+            <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Ver Menú del Mes</span>
+            <ExternalLink className="w-3 h-3 opacity-80" />
+          </a>
+        </div>
+        <School className="absolute -right-4 -bottom-5 w-24 h-24 text-white/5 rotate-12 pointer-events-none" />
+      </div>
+
+      {/* Barra de Progreso Visual Interactiva */}
+      <div className="flex items-center justify-between px-5 sm:px-8 py-3.5 border-b border-slate-200/60 dark:border-slate-800/70 bg-slate-50/70 dark:bg-slate-900/40">
         {[1, 2, 3].map((s) => (
           <React.Fragment key={s}>
-            <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
+            <button
+              type="button"
+              disabled={s > step}
+              onClick={() => { if (s < step) setStep(s); }}
+              className={`flex items-center gap-2 group ${s < step ? "cursor-pointer" : "cursor-default"}`}
+            >
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-black text-xs transition-all duration-300 ${
                 step === s 
-                  ? "bg-blue-650 text-white shadow-lg shadow-blue-500/25 ring-4 ring-blue-500/10 scale-110" 
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 ring-4 ring-blue-500/15 scale-105" 
                   : step > s 
-                    ? "bg-emerald-500 text-white shadow-sm" 
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-650"
+                    ? "bg-emerald-500 text-white shadow-xs group-hover:bg-emerald-600" 
+                    : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600"
               }`}>
-                {step > s ? <CheckCircle className="w-5 h-5" /> : s}
+                {step > s ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : s}
               </div>
-              <span className={`text-[10px] font-bold tracking-wider uppercase hidden sm:inline ${
-                step === s ? "text-blue-650 dark:text-blue-400" : "text-slate-400 dark:text-slate-505"
+              <span className={`text-[10.5px] font-extrabold tracking-wider uppercase ${
+                step === s ? "text-blue-600 dark:text-blue-400" : step > s ? "text-emerald-600 dark:text-emerald-400 hidden sm:inline" : "text-slate-400 dark:text-slate-500 hidden sm:inline"
               }`}>
                 {s === 1 ? "Etapa" : s === 2 ? "Curso" : "Asistencia"}
               </span>
-            </div>
+            </button>
             {s < 3 && (
-              <div className={`flex-1 h-0.5 mx-4 transition-all duration-500 ${
+              <div className={`flex-1 h-1 mx-2.5 sm:mx-4 rounded-full transition-all duration-500 ${
                 step > s ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-800"
               }`} />
             )}
@@ -1397,171 +1552,263 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
         ))}
       </div>
       
-      <div className="p-6">
-        {/* Acceso directo al Menú del Mes */}
-        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-emerald-50/60 dark:bg-emerald-955/20 border border-emerald-200/70 dark:border-emerald-900/40 px-4 py-3 rounded-2xl shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
-              <UtensilsCrossed className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="block text-xs font-black text-slate-800 dark:text-slate-100">Menú Escolar del Mes</span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">Consulta los platos y comidas programadas para hoy</span>
-            </div>
+      <div className="p-4 sm:p-6">
+        {/* Cabecera de navegación del paso */}
+        {step === 2 && (
+          <div className="flex justify-between items-center mb-4">
+            <button 
+              type="button"
+              onClick={() => setStep(1)} 
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-700 dark:text-slate-300 font-extrabold text-xs transition-all active:scale-95"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Cambiar Etapa ({formData.etapa})</span>
+            </button>
+            <span className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200/50 dark:border-blue-900">
+              {formData.etapa} {formData.curso && `• ${formData.curso}`}
+            </span>
           </div>
-          <a 
-            href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
-            title="Abrir el menú del mes en Google Drive"
-          >
-            <span>Ver Menú del Mes</span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-          </a>
-        </div>
+        )}
 
-        {/* Cabecera del paso */}
-        <div className="flex justify-between items-center mb-6">
-            <div className="flex gap-2 text-slate-400 dark:text-slate-505 font-bold text-xs uppercase tracking-wider items-center">
-              {step > 1 && !defaultClass && (
-                <button 
-                  onClick={() => setStep(s => s - 1)} 
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-              )}
-              <span>PASO {step}/3</span>
+        {/* PASO 1: Selección Etapa con Progreso en Vivo */}
+        {step === 1 && (
+          <div className="space-y-4 animate-slide-right py-1">
+            <div className="text-center space-y-1 mb-4">
+              <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100">¿Qué etapa vas a registrar hoy?</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Selecciona tu etapa educativa para elegir aula</p>
             </div>
             
-            {step > 1 && (
-              <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                {formData.etapa} {formData.curso && `> ${formData.curso}`} {formData.letra && `> ${formData.letra}`}
-              </div>
-            )}
-        </div>
-
-        {/* PASO 1: Selección Etapa */}
-        {step === 1 && (
-          <div className="space-y-4 animate-slide-right">
-            <h2 className="text-xl font-black text-center text-slate-800 dark:text-slate-100 mb-6">¿Qué etapa vas a registrar?</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button 
-                onClick={() => { setFormData(prev => ({ ...prev, etapa: "Infantil" })); setStep(2); }} 
-                className="interactive-card flex items-center gap-4 p-6 bg-slate-50/40 dark:bg-slate-800/10 border border-slate-200 dark:border-slate-800 rounded-2xl hover:border-pink-500 dark:hover:border-pink-500 hover:bg-pink-50/20 dark:hover:bg-pink-955/10 transition-all group text-left"
-              >
-                <div className="p-4 rounded-2xl bg-pink-100/60 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform shadow-inner">
-                  <Baby className="w-8 h-8" />
-                </div>
-                <div>
-                  <span className="block text-lg font-black text-slate-800 dark:text-slate-100 group-hover:text-pink-650 dark:group-hover:text-pink-400 transition-colors">Infantil</span>
-                  <span className="text-xs text-slate-450 dark:text-slate-400">De 1º a 3º de Infantil (Menores)</span>
-                </div>
-              </button>
-              
-              <button 
-                onClick={() => { setFormData(prev => ({ ...prev, etapa: "Primaria" })); setStep(2); }} 
-                className="interactive-card flex items-center gap-4 p-6 bg-slate-50/40 dark:bg-slate-800/10 border border-slate-200 dark:border-slate-800 rounded-2xl hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50/20 dark:hover:bg-blue-950/10 transition-all group text-left"
-              >
-                <div className="p-4 rounded-2xl bg-blue-100/60 dark:bg-blue-955/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform shadow-inner">
-                  <GraduationCap className="w-8 h-8" />
-                </div>
-                <div>
-                  <span className="block text-lg font-black text-slate-800 dark:text-slate-100 group-hover:text-blue-650 dark:group-hover:text-blue-400 transition-colors">Primaria</span>
-                  <span className="text-xs text-slate-450 dark:text-slate-400">De 1º a 6º de Primaria</span>
-                </div>
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+              {(() => {
+                const infDone = countStageRegistered("Infantil");
+                const infTotal = (appSettings.cursosInfantil?.length || 3) * (appSettings.letras?.length || 3);
+                const priDone = countStageRegistered("Primaria");
+                const priTotal = (appSettings.cursosPrimaria?.length || 6) * (appSettings.letras?.length || 3);
+                return (
+                  <>
+                    <button 
+                      onClick={() => { setFormData(prev => ({ ...prev, etapa: "Infantil", curso: "", letra: "" })); setStep(2); }} 
+                      className="interactive-card flex flex-col justify-between p-5 sm:p-6 bg-gradient-to-br from-pink-50/70 via-white to-rose-50/40 dark:from-pink-950/20 dark:via-slate-900 dark:to-slate-900 border-2 border-pink-200/80 dark:border-pink-900/50 rounded-3xl hover:border-pink-500 dark:hover:border-pink-500 transition-all group text-left shadow-sm"
+                    >
+                      <div className="flex items-center gap-4 w-full">
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 text-white group-hover:scale-110 transition-transform shadow-md shadow-pink-500/20">
+                          <Baby className="w-8 h-8" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
+                              Educación Infantil
+                            </span>
+                            <ChevronRight className="w-5 h-5 text-pink-400 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-0.5">
+                            1º, 2º y 3º de Infantil (3 a 5 años)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-pink-100 dark:border-slate-800 w-full flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-pink-700 dark:text-pink-300">Progreso de hoy:</span>
+                        <span className="bg-pink-100 dark:bg-pink-950/60 text-pink-800 dark:text-pink-200 px-2.5 py-0.5 rounded-full font-black">
+                          {infDone} / {infTotal} aulas listas
+                        </span>
+                      </div>
+                    </button>
+                    
+                    <button 
+                      onClick={() => { setFormData(prev => ({ ...prev, etapa: "Primaria", curso: "", letra: "" })); setStep(2); }} 
+                      className="interactive-card flex flex-col justify-between p-5 sm:p-6 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 dark:from-blue-950/20 dark:via-slate-900 dark:to-slate-900 border-2 border-blue-200/80 dark:border-blue-900/50 rounded-3xl hover:border-blue-500 dark:hover:border-blue-500 transition-all group text-left shadow-sm"
+                    >
+                      <div className="flex items-center gap-4 w-full">
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white group-hover:scale-110 transition-transform shadow-md shadow-blue-500/20">
+                          <GraduationCap className="w-8 h-8" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              Educación Primaria
+                            </span>
+                            <ChevronRight className="w-5 h-5 text-blue-400 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mt-0.5">
+                            De 1º a 6º de Primaria (Grupos A, B y C)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-blue-100 dark:border-slate-800 w-full flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-blue-700 dark:text-blue-300">Progreso de hoy:</span>
+                        <span className="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200 px-2.5 py-0.5 rounded-full font-black">
+                          {priDone} / {priTotal} aulas listas
+                        </span>
+                      </div>
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}
 
-        {/* PASO 2: Selección Curso y Letra */}
+        {/* PASO 2: Selección Curso y Letra con Indicador de Aulas Ya Registradas */}
         {step === 2 && (
-          <div className="space-y-6 animate-slide-right">
-            <h2 className="text-xl font-black text-center text-slate-800 dark:text-slate-100">Selecciona el Curso y la Letra</h2>
-            
-            <div className="space-y-4">
-              <span className="block text-xs font-extrabold text-slate-400 dark:text-slate-505 uppercase tracking-wider">Cursos</span>
+          <div className="space-y-5 animate-slide-right">
+            <div className="space-y-2.5">
+              <span className="block text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                1. Selecciona el Curso de {formData.etapa}
+              </span>
               <div className="grid grid-cols-3 gap-2.5">
-                {cursosDisponibles.map(c => (
-                  <button 
-                    key={c} 
-                    onClick={() => setFormData(prev => ({ ...prev, curso: c }))} 
-                    className={`btn-hover-effect py-3.5 rounded-2xl font-bold text-sm transition-all border ${
-                      formData.curso === c 
-                        ? "bg-blue-650 border-blue-650 text-white shadow-lg shadow-blue-500/20" 
-                        : "bg-slate-50/60 dark:bg-slate-850/40 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+                {cursosDisponibles.map(c => {
+                  const letrasArr = appSettings.letras || ["A", "B", "C"];
+                  const doneInCourse = letrasArr.filter(l => !!findGroupRecord(formData.etapa, c, l)).length;
+                  const allDone = doneInCourse === letrasArr.length;
+                  return (
+                    <button 
+                      key={c} 
+                      onClick={() => setFormData(prev => ({ ...prev, curso: c }))} 
+                      className={`btn-hover-effect py-3.5 px-2 rounded-2xl font-black text-base transition-all border-2 flex flex-col items-center justify-center gap-1 ${
+                        formData.curso === c 
+                          ? "bg-gradient-to-br from-blue-600 to-indigo-600 border-blue-600 text-white shadow-lg shadow-blue-500/25" 
+                          : allDone
+                            ? "bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300"
+                            : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-blue-400"
+                      }`}
+                    >
+                      <span>{c} {formData.etapa === "Infantil" ? "Inf" : "Pri"}</span>
+                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full ${
+                        formData.curso === c
+                          ? "bg-white/20 text-white"
+                          : doneInCourse > 0
+                            ? "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300"
+                            : "bg-slate-100 dark:bg-slate-700/70 text-slate-400"
+                      }`}>
+                        {doneInCourse}/{letrasArr.length} {allDone ? "✓" : "hoy"}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {formData.curso && (
-              <div className="space-y-4 animate-slide-up">
-                <span className="block text-xs font-extrabold text-slate-400 dark:text-slate-505 uppercase tracking-wider">Letra / Grupo</span>
-                <div className="grid grid-cols-3 gap-3.5">
-                  {appSettings.letras.map(l => (
-                    <button 
-                      key={l} 
-                      onClick={() => { 
-                        setFormData(prev => ({ ...prev, letra: l })); 
-                        setTimeout(() => setStep(3), 150); 
-                      }} 
-                      className="btn-hover-effect py-4 bg-slate-50/60 dark:bg-slate-855/40 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-2xl text-slate-750 dark:text-slate-250 hover:bg-blue-50 hover:border-blue-500 dark:hover:bg-blue-955/20 dark:hover:border-blue-450 transition-all hover:scale-105 hover:shadow-md shadow-sm"
-                    >
-                      {l}
-                    </button>
-                  ))}
+              <div className="space-y-2.5 animate-slide-up pt-1">
+                <span className="block text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  2. Toca la Letra / Grupo de {formData.curso}
+                </span>
+                <div className="grid grid-cols-3 gap-3">
+                  {appSettings.letras.map(l => {
+                    const reg = findGroupRecord(formData.etapa, formData.curso, l);
+                    const totalReg = reg ? (Number(reg.fijos) || 0) + (Number(reg.tickets) || 0) : 0;
+                    return (
+                      <button 
+                        key={l} 
+                        onClick={() => { 
+                          setFormData(prev => ({ ...prev, letra: l })); 
+                          setTimeout(() => setStep(3), 120); 
+                        }} 
+                        className={`btn-hover-effect py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1 shadow-sm ${
+                          reg
+                            ? "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200"
+                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:border-blue-500 hover:bg-blue-50/30"
+                        }`}
+                      >
+                        <span className="font-black text-2xl sm:text-3xl leading-none">{l}</span>
+                        {reg ? (
+                          <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-200/60 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full flex items-center gap-1 mt-1">
+                            <Check className="w-3 h-3 stroke-[3]" /> {totalReg} platos
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 mt-1">
+                            Pendiente
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* PASO 3: Datos de Comensales */}
+        {/* PASO 3: Datos de Comensales (Ergonomía Móvil) */}
         {step === 3 && (
-          <div className="space-y-6 animate-slide-right">
-            {/* Cabecera del formulario del aula */}
-            <div className="text-center pb-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-              {/* Botón de Cambiar Clase (Productividad Profesor 1) */}
-              <button 
-                onClick={handleClearDefaultClass} 
-                className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-red-500 transition-all py-1.5 px-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200/50 dark:border-slate-700"
-                title="Cambiar a otra clase y resetear"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Cambiar Clase</span>
-              </button>
-              
-              <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">{formData.etapa} {formData.curso} - {formData.letra}</h2>
-              
-              {/* Botón de Carga Histórica Rápida "Cargar datos de ayer" (Productividad Profesor 2) */}
-              {hasLastSub ? (
+          <div className="space-y-5 animate-slide-right">
+            {/* Cabecera del formulario del aula con Conmutador Rápido A | B | C */}
+            <div className="bg-slate-50/90 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-3">
+              <div className="flex justify-between items-center gap-2">
+                {/* Botón de Cambiar Clase (Productividad Profesor 1) */}
                 <button 
-                  onClick={handleLoadLastSubmission} 
-                  className="flex items-center gap-1 text-[11.5px] font-extrabold text-blue-650 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all py-1.5 px-3 bg-blue-50/50 dark:bg-blue-950/10 rounded-xl border border-blue-100/50 dark:border-blue-950"
-                  title="Cargar comensales y dietas registradas ayer"
+                  onClick={handleClearDefaultClass} 
+                  className="flex items-center gap-1 text-[11px] font-extrabold text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-all py-1.5 px-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs"
+                  title="Cambiar a otro curso o etapa"
                 >
-                  <History className="w-3.5 h-3.5" />
-                  <span>Datos de Ayer</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Cursos</span>
                 </button>
-              ) : (
-                <div className="w-20"></div> // Equilibrador visual
-              )}
+                
+                <div className="text-center">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 block">
+                    {formData.etapa}
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 leading-tight">
+                    {formData.curso} - Grupo {formData.letra}
+                  </h2>
+                </div>
+                
+                {/* Botón de Carga Histórica Rápida "Cargar datos de ayer" (Productividad Profesor 2) */}
+                {hasLastSub ? (
+                  <button 
+                    onClick={handleLoadLastSubmission} 
+                    className="flex items-center gap-1 text-[11px] font-extrabold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-all py-1.5 px-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800 shadow-xs"
+                    title="Cargar comensales y dietas registradas ayer"
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    <span>Ayer</span>
+                  </button>
+                ) : (
+                  <div className="w-16"></div>
+                )}
+              </div>
+
+              {/* Conmutador Rápido de Letra (A | B | C) en 1 toque sin salir de la pantalla */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                {(appSettings.letras || ["A", "B", "C"]).map(ltr => {
+                  const isCurrent = formData.letra === ltr;
+                  const isDone = !!findGroupRecord(formData.etapa, formData.curso, ltr);
+                  return (
+                    <button
+                      key={ltr}
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(false);
+                        setFormData(prev => ({ ...prev, letra: ltr }));
+                      }}
+                      className={`py-1.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                        isCurrent
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : isDone
+                            ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60"
+                            : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/70 dark:border-slate-800 hover:border-blue-300"
+                      }`}
+                    >
+                      <span>{formData.curso} {ltr}</span>
+                      {isDone && (
+                        <CheckCircle className={`w-3.5 h-3.5 ${isCurrent ? "text-emerald-200" : "text-emerald-500"}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             
             {yaRegistrado && !isEditing ? (
-               <div className="bg-gradient-to-tr from-blue-50 to-blue-100/50 dark:from-blue-950/10 dark:to-blue-950/20 p-6 rounded-2xl text-center border-blue-200/60 dark:border-blue-900 border animate-scale-up">
-                  <CheckCircle className="w-14 h-14 text-emerald-500 dark:text-emerald-400 mx-auto mb-3"/>
-                  <h3 className="font-black text-slate-900 dark:text-white text-base mb-1">Grupo ya Registrado</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Esta clase ya ha enviado los datos de asistencia para esta fecha.</p>
+               <div className="bg-gradient-to-tr from-blue-50 to-indigo-50/60 dark:from-blue-950/20 dark:to-indigo-950/20 p-5 sm:p-6 rounded-3xl text-center border-blue-200/80 dark:border-blue-900 border-2 animate-scale-up shadow-md">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <CheckCircle className="w-8 h-8"/>
+                  </div>
+                  <h3 className="font-black text-slate-900 dark:text-white text-lg mb-0.5">Aula ya Registrada Hoy</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Esta clase ya ha enviado su parte de comedor para esta fecha.</p>
                   
-                  <div className="bg-white dark:bg-slate-850 p-4 rounded-2xl shadow-sm mb-5 text-left text-xs border border-slate-200 dark:border-slate-800 space-y-2.5">
+                  <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm mb-5 text-left text-xs border border-slate-200 dark:border-slate-800 space-y-2.5">
                     <div className="flex justify-between border-b dark:border-slate-800 pb-1.5 font-bold">
                       <span className="text-slate-500 dark:text-slate-400">Modalidad de Servicio:</span> 
                       <span className={yaRegistrado.esExcursion ? "text-purple-600 dark:text-purple-400" : "text-blue-600 dark:text-blue-400"}>
@@ -1608,13 +1855,13 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                     )}
                     {Number(yaRegistrado.catequesis) > 0 && (
                       <div className="flex justify-between border-b dark:border-slate-800 pb-1.5 font-bold text-amber-700 dark:text-amber-400">
-                        <span>Alumnos con Catequesis:</span> 
+                        <span>📖 Alumnos con Catequesis:</span> 
                         <span className="text-sm font-black">{yaRegistrado.catequesis}</span>
                       </div>
                     )}
                     {Number(yaRegistrado.robotica) > 0 && (
                       <div className="flex justify-between border-b dark:border-slate-800 pb-1.5 font-bold text-cyan-700 dark:text-cyan-400">
-                        <span>Alumnos en Robótica (Turno tardío):</span> 
+                        <span>🤖 Alumnos en Robótica (Turno tardío):</span> 
                         <span className="text-sm font-black">{yaRegistrado.robotica}</span>
                       </div>
                     )}
@@ -1628,43 +1875,43 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                     <button 
                       type="button"
                       onClick={enableEditMode} 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-xs shadow-md active:scale-98"
+                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 text-xs shadow-md active:scale-98"
                     >
-                      <Edit3 className="w-4 h-4" /> Editar Datos Guardados
+                      <Edit3 className="w-4 h-4" /> Modificar Datos de esta Aula
                     </button>
                     <button 
                       type="button"
                       onClick={resetForm} 
-                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all text-xs"
+                      className="w-full py-2.5 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl border border-slate-200 dark:border-slate-700 transition-all text-xs"
                     >
-                      Registrar otra clase
+                      Elegir otro curso
                     </button>
                   </div>
                </div>
             ) : (
               <>
                 {/* Checkbox de Excursión y Picnic */}
-                <div className="bg-gradient-to-r from-purple-50/20 to-blue-50/20 dark:from-purple-955/5 dark:to-blue-955/5 p-5 rounded-2xl border border-purple-200/40 dark:border-purple-900/30 space-y-4">
+                <div className="bg-gradient-to-r from-purple-50/40 to-indigo-50/30 dark:from-purple-950/20 dark:to-indigo-950/15 p-4 rounded-2xl border border-purple-200/60 dark:border-purple-900/40 space-y-3">
                   <label className="flex gap-3 items-center text-sm font-bold text-purple-950 dark:text-purple-300 cursor-pointer select-none">
                     <input 
                       type="checkbox" 
-                      className="w-5 h-5 accent-purple-650 rounded cursor-pointer" 
+                      className="w-5 h-5 accent-purple-600 rounded cursor-pointer" 
                       checked={esExcursion} 
                       onChange={e => setEsExcursion(e.target.checked)}
                     /> 
-                    <div className="flex flex-col">
-                      <span className="flex items-center gap-1.5 font-black text-purple-800 dark:text-purple-400">
-                        🎒 ¿Esta clase va de Excursión (Solicitar Picnic)?
+                    <div className="flex flex-col text-left">
+                      <span className="flex items-center gap-1.5 font-black text-purple-800 dark:text-purple-300 text-xs sm:text-sm">
+                        🎒 ¿Excursión Escolar (Solicitar Bolsas de Picnic)?
                       </span>
-                      <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                        Si se activa, se solicitarán bolsas de picnic en lugar de platos calientes en comedor.
+                      <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-medium">
+                        Actívalo si la clase come fuera y necesita picnics preparados por cocina.
                       </span>
                     </div>
                   </label>
 
                   {esExcursion && (
-                    <div className="pl-8 space-y-2.5 animate-slide-up">
-                      <label className="block text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <div className="pl-8 space-y-2 animate-slide-up text-left">
+                      <label className="block text-[10px] font-extrabold text-purple-700 dark:text-purple-300 uppercase tracking-wider">
                         Fecha de la Excursión:
                       </label>
                       <input 
@@ -1672,35 +1919,49 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                         value={fechaExcursion}
                         min={getLocalISODate()}
                         onChange={e => setFechaExcursion(e.target.value)}
-                        className="font-bold text-slate-705 dark:text-slate-250 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 outline-none cursor-pointer text-xs focus:ring-2 focus:ring-purple-150/40 dark:focus:ring-purple-950/40"
+                        className="font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-xl px-3 py-2 outline-none cursor-pointer text-xs focus:ring-2 focus:ring-purple-400"
                       />
                     </div>
                   )}
                 </div>
 
-                {/* Selector Numérico: Fijos */}
-                <div className="bg-slate-50/50 dark:bg-slate-800/10 p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 relative overflow-hidden">
-                   <div className="flex justify-between items-center mb-4 relative z-10">
-                     <span className="font-bold text-blue-900 dark:text-blue-300 flex gap-2 items-center text-sm">
-                       <Users className="w-5 h-5 text-blue-650 dark:text-blue-400"/> {esExcursion ? "Picnics Alumnos Fijos" : "Fijos (Menú)"}
-                     </span>
-                     <div className="flex gap-2 items-center">
+                {/* Selector Numérico: Fijos (Optimizado para Pulgar en Móvil) */}
+                <div className="bg-gradient-to-br from-blue-50/50 via-white to-slate-50/60 dark:from-slate-800/50 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-blue-200/70 dark:border-slate-800 relative overflow-hidden shadow-xs">
+                   <div className="flex justify-between items-center mb-3 relative z-10">
+                     <div className="text-left">
+                       <span className="font-black text-blue-950 dark:text-blue-200 flex gap-2 items-center text-sm sm:text-base">
+                         <Users className="w-5 h-5 text-blue-600 dark:text-blue-400"/>
+                         <span>{esExcursion ? "Picnics Alumnos Fijos" : "Fijos (Menú)"}</span>
+                       </span>
+                       <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-semibold block">
+                         Total de alumnos habituales que comen hoy
+                       </span>
+                     </div>
+
+                     <div className="flex gap-1.5 sm:gap-2 items-center">
                        <button 
+                         type="button"
                          onClick={() => adjustValue("fijos", -1)} 
-                         className="btn-hover-effect w-9 h-9 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-600 dark:text-slate-350 hover:bg-slate-50"
+                         className="btn-hover-effect w-11 h-11 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-200 active:scale-90"
+                         aria-label="Restar 1 fijo"
                        >
-                         <Minus className="w-4 h-4" />
+                         <Minus className="w-5 h-5 stroke-[2.5]" />
                        </button>
-                       <div className="w-14 text-center">
-                         <span className="text-2xl font-black text-slate-800 dark:text-slate-105 block">
-                           {formData.fijos}
-                         </span>
-                       </div>
+                       <input
+                         type="number"
+                         min="0"
+                         max={appSettings.maxComensales}
+                         value={formData.fijos}
+                         onChange={e => handleInputChange("fijos", e.target.value)}
+                         className="w-14 h-11 text-center text-2xl font-black text-blue-700 dark:text-blue-300 bg-blue-50/60 dark:bg-slate-800/90 border border-blue-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                       />
                        <button 
+                         type="button"
                          onClick={() => adjustValue("fijos", 1)} 
-                         className="btn-hover-effect w-9 h-9 bg-blue-600 dark:bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-blue-500/10"
+                         className="btn-hover-effect w-11 h-11 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-blue-500/20 active:scale-90"
+                         aria-label="Sumar 1 fijo"
                        >
-                         <Plus className="w-4 h-4" />
+                         <Plus className="w-5 h-5 stroke-[2.5]" />
                        </button>
                      </div>
                    </div>
@@ -1711,48 +1972,77 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                      max={appSettings.maxComensales} 
                      value={Number(formData.fijos) || 0} 
                      onChange={e => handleInputChange("fijos", e.target.value)} 
-                     className="w-full cursor-pointer relative z-10"
+                     className="w-full cursor-pointer relative z-10 my-1"
                    />
-                   <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-505 mt-2 font-bold px-1">
+                   <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-bold px-1">
                      <span>0</span>
-                     <span>{Math.floor(appSettings.maxComensales / 2)}</span>
-                     <span>{appSettings.maxComensales}</span>
+                     <div className="flex gap-1.5">
+                       {[10, 15, 20, 25].filter(n => n <= appSettings.maxComensales).map(preset => (
+                         <button
+                           key={preset}
+                           type="button"
+                           onClick={() => handleInputChange("fijos", preset)}
+                           className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all ${
+                             Number(formData.fijos) === preset
+                               ? "bg-blue-600 text-white"
+                               : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-blue-100"
+                           }`}
+                         >
+                           {preset}
+                         </button>
+                       ))}
+                     </div>
+                     <span>Máx: {appSettings.maxComensales}</span>
                    </div>
                 </div>
                 
                 {/* Selector Numérico: Tickets */}
-                <div className="bg-amber-50/20 dark:bg-amber-955/5 p-5 rounded-2xl border border-amber-200/35 dark:border-amber-900/20 flex justify-between items-center">
-                   <span className="font-bold text-amber-900 dark:text-amber-300 flex gap-2 items-center text-sm">
-                     <Ticket className="w-5 h-5 text-amber-600 dark:text-amber-455"/> {esExcursion ? "Picnics Tickets" : "Tickets Sueltos"}
-                   </span>
-                   <div className="flex gap-2 items-center">
+                <div className="bg-gradient-to-br from-amber-50/40 via-white to-orange-50/30 dark:from-amber-950/15 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-5 rounded-2xl border border-amber-200/60 dark:border-amber-900/30 flex justify-between items-center shadow-xs">
+                   <div className="text-left">
+                     <span className="font-black text-amber-950 dark:text-amber-300 flex gap-2 items-center text-sm sm:text-base">
+                       <Ticket className="w-5 h-5 text-amber-600 dark:text-amber-400"/>
+                       <span>{esExcursion ? "Picnics con Ticket" : "Tickets Sueltos"}</span>
+                     </span>
+                     <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-semibold block">
+                       Alumnos eventuales con bono/ticket hoy
+                     </span>
+                   </div>
+                   <div className="flex gap-1.5 sm:gap-2 items-center">
                      <button 
+                       type="button"
                        onClick={() => adjustValue("tickets", -1)} 
-                       className="btn-hover-effect w-9 h-9 bg-white dark:bg-slate-800 rounded-xl border border-slate-205 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-650 dark:text-slate-350"
+                       className="btn-hover-effect w-11 h-11 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-200 active:scale-90"
+                       aria-label="Restar 1 ticket"
                      >
-                       <Minus className="w-4 h-4" />
+                       <Minus className="w-5 h-5 stroke-[2.5]" />
                      </button>
-                     <div className="w-14 text-center">
-                       <span className="text-2xl font-black text-amber-700 dark:text-amber-400 block">
-                         {formData.tickets}
-                       </span>
-                     </div>
+                     <input
+                       type="number"
+                       min="0"
+                       max={appSettings.maxComensales}
+                       value={formData.tickets}
+                       onChange={e => handleInputChange("tickets", e.target.value)}
+                       className="w-14 h-11 text-center text-2xl font-black text-amber-700 dark:text-amber-400 bg-amber-50/60 dark:bg-slate-800/90 border border-amber-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"
+                     />
                      <button 
+                       type="button"
                        onClick={() => adjustValue("tickets", 1)} 
-                       className="btn-hover-effect w-9 h-9 bg-amber-500 dark:bg-amber-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-amber-500/10"
+                       className="btn-hover-effect w-11 h-11 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-amber-500/20 active:scale-90"
+                       aria-label="Sumar 1 ticket"
                      >
-                       <Plus className="w-4 h-4" />
+                       <Plus className="w-5 h-5 stroke-[2.5]" />
                      </button>
                    </div>
                 </div>
 
                 {/* Profesor se queda */}
-                <div className="bg-blue-50/20 dark:bg-blue-950/5 p-5 rounded-2xl border border-blue-200/40 dark:border-blue-900/20 space-y-4">
+                <div className="bg-blue-50/25 dark:bg-blue-950/10 p-4 sm:p-5 rounded-2xl border border-blue-200/50 dark:border-blue-900/30 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-blue-950 dark:text-blue-300 flex gap-2 items-center text-sm">
-                      <UserCheck className="w-5 h-5 text-blue-650 dark:text-blue-400" /> ¿El profesor/a come en el comedor?
+                    <span className="font-bold text-blue-950 dark:text-blue-300 flex gap-2 items-center text-xs sm:text-sm text-left">
+                      <UserCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span>¿El profesor/a come hoy en el comedor? <span className="text-[10px] text-slate-400 font-semibold">(+0 platos)</span></span>
                     </span>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
                       <input 
                         type="checkbox" 
                         className="sr-only peer" 
@@ -1767,7 +2057,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                       <input 
                         type="text" 
                         placeholder="Nombre completo del profesor/a" 
-                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-150 dark:focus:ring-blue-950 text-slate-800 dark:text-slate-100 text-sm font-semibold shadow-inner" 
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-900 text-slate-800 dark:text-slate-100 text-sm font-semibold shadow-inner" 
                         value={formData.profesorNombre} 
                         onChange={(e) => setFormData(prev => ({ ...prev, profesorNombre: e.target.value }))} 
                       />
@@ -1775,26 +2065,29 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                   )}
                 </div>
 
-                {/* Actividades Extra (Dinámicas) */}
+                {/* Actividades Extra (Dinámicas: Catequesis / Robótica) */}
                 {activeActivitiesForClass.length > 0 && (
-                  <div className="bg-slate-50/50 dark:bg-slate-800/10 p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 space-y-3">
-                    <h3 className="text-xs font-bold text-slate-405 dark:text-slate-500 uppercase tracking-wider">Actividades Extra Hoy</h3>
+                  <div className="bg-gradient-to-br from-amber-50/40 via-white to-cyan-50/30 dark:from-slate-800/40 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-amber-200/70 dark:border-slate-800 space-y-3 shadow-xs">
+                    <h3 className="text-xs font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>Actividades del Día en {formData.curso} {formData.letra}</span>
+                    </h3>
                     
                     {activeActivitiesForClass.map(act => {
                       const IconComponent = LucideReact[act.icon] || BookOpen;
                       return (
-                        <div key={act.id} className="space-y-1.5">
-                          <div className="flex justify-between bg-white/60 dark:bg-slate-850/40 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 items-center">
-                            <span className="flex gap-2 text-sm font-bold text-blue-700 dark:text-blue-400 items-center">
-                              <IconComponent className="w-4 h-4 text-blue-505"/> {act.nombre}
+                        <div key={act.id} className="space-y-2">
+                          <div className="flex justify-between bg-white dark:bg-slate-800/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 items-center shadow-xs">
+                            <span className="flex gap-2 text-sm font-black text-slate-800 dark:text-slate-100 items-center">
+                              <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400"/> {act.nombre}
                             </span>
                             <div className="flex items-center gap-2">
                               <button 
                                 type="button"
                                 onClick={() => adjustValue(act.id, -1)} 
-                                className="btn-hover-effect w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center text-sm shadow-sm"
+                                className="btn-hover-effect w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center text-sm shadow-xs"
                               >
-                                <Minus className="w-3.5 h-3.5" />
+                                <Minus className="w-4 h-4 stroke-[2.5]" />
                               </button>
                               <input 
                                 type="number"
@@ -1802,19 +2095,19 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                                 max={appSettings.maxComensales}
                                 value={formData[act.id] !== undefined ? formData[act.id] : 0}
                                 onChange={e => handleInputChange(act.id, e.target.value)}
-                                className="w-12 py-1 text-center font-bold text-base text-slate-850 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                                className="w-13 h-10 py-1 text-center font-black text-lg text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
                               />
                               <button 
                                 type="button"
                                 onClick={() => adjustValue(act.id, 1)} 
-                                className="btn-hover-effect w-8 h-8 rounded-lg bg-blue-650 text-white font-bold flex items-center justify-center text-sm shadow-sm"
+                                className="btn-hover-effect w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-sm shadow-md shadow-blue-500/20"
                               >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-4 h-4 stroke-[2.5]" />
                               </button>
                             </div>
                           </div>
                           {act.id === "robotica" && (
-                            <div className="text-[11px] font-medium text-cyan-850 dark:text-cyan-200 bg-cyan-50/80 dark:bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-200/60 dark:border-cyan-800/50 text-left">
+                            <div className="text-[11px] font-medium text-cyan-900 dark:text-cyan-200 bg-cyan-50/90 dark:bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-200/70 dark:border-cyan-800/50 text-left">
                               🤖 <strong>Turno tardío:</strong> Van a robótica y comen más tarde en el comedor. Recuerda que <span className="underline">debes contarlos</span> en el total de comensales (Fijos).
                             </div>
                           )}
@@ -1830,20 +2123,31 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                 )}
 
                 {/* Sección Alergias y Dietas (Roster permanente e interactivo - Mejora 1) */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
-                  <h3 className="font-bold text-slate-755 dark:text-slate-300 flex items-center gap-2 text-sm uppercase tracking-wide">
-                    <Salad className="w-5 h-5 text-emerald-600 dark:text-emerald-505"/> Dietas Especiales y Alergias
-                  </h3>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h3 className="font-black text-slate-800 dark:text-slate-200 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wide">
+                      <Salad className="w-5 h-5 text-emerald-600 dark:text-emerald-400"/> Dietas Especiales y Alergias
+                    </h3>
+                    {rosterAlumnos.length > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 font-extrabold px-2 py-0.5 rounded-full">
+                          {rosterAlumnos.length - rosterAbsentes.length} comen
+                        </span>
+                        {rosterAbsentes.length > 0 && (
+                          <span className="text-[10px] bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200/60 dark:border-red-800/60 font-extrabold px-2 py-0.5 rounded-full">
+                            {rosterAbsentes.length} faltan
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Listado Roster Estable de esta clase (Mobile-First Ergonomía) */}
                   {rosterAlumnos.length > 0 && (
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          Alumnos registrados con dietas / alergias
-                        </span>
-                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold px-2 py-0.5 rounded-full">
-                          {rosterAlumnos.length} {rosterAlumnos.length === 1 ? "alumno" : "alumnos"}
+                          Alumnos registrados con dietas / alergias ({rosterAlumnos.length})
                         </span>
                       </div>
 
@@ -2227,14 +2531,19 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                 </div>
 
                 {/* Barra Flotante Inferior Ergonómica (Thumb-Zone Action Bar para Móvil) */}
-                <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 z-30 shadow-2xl print:hidden">
+                <div className="fixed bottom-0 left-0 right-0 p-3 pb-safe-bottom bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 z-30 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] print:hidden">
                   <div className="max-w-xl mx-auto flex items-center gap-3">
-                    <div className="flex flex-col min-w-[85px] pl-1">
-                      <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400">Total Platos</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-black text-slate-900 dark:text-slate-100">{currentTotal}</span>
+                    <div className="flex flex-col min-w-[100px] pl-1 text-left">
+                      <span className="text-[9.5px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                        {formData.curso} {formData.letra} • Total Platos
+                      </span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">{currentTotal}</span>
+                        <span className="text-[10px] font-bold text-slate-400">({formData.fijos || 0}F+{formData.tickets || 0}T)</span>
                         {especialesCount > 0 && (
-                          <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">({especialesCount} esp)</span>
+                          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-md">
+                            {especialesCount} esp
+                          </span>
                         )}
                       </div>
                     </div>
@@ -2243,7 +2552,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
                       type="button"
                       disabled={sending}
                       onClick={handleSubmit}
-                      className="flex-1 h-13 py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                      className="flex-1 h-13 py-3.5 px-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     >
                       {sending ? (
                         <>
@@ -2311,10 +2620,46 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
   const [showClasses, setShowClasses] = useState(false);
   const [showDietDetail, setShowDietDetail] = useState(false);
   const [showObservations, setShowObservations] = useState(false);
+  const [showPendingClasses, setShowPendingClasses] = useState(false);
   const [historyData, setHistoryData] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [roster, setRoster] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Monitor de recepción de partes por aula en el día seleccionado
+  const receptionStatus = useMemo(() => {
+    const letrasList = appSettings?.letras || ["A", "B", "C"];
+    const cursosInf = appSettings?.cursosInfantil || ["1º", "2º", "3º"];
+    const cursosPri = appSettings?.cursosPrimaria || ["1º", "2º", "3º", "4º", "5º", "6º"];
+    const sentSet = new Set(registros.map(r => `${r.etapa}_${r.curso}_${r.letra}`));
+
+    const pendingInfantil = [];
+    cursosInf.forEach(c => {
+      letrasList.forEach(l => {
+        if (!sentSet.has(`Infantil_${c}_${l}`)) pendingInfantil.push(`${c} ${l}`);
+      });
+    });
+
+    const pendingPrimaria = [];
+    cursosPri.forEach(c => {
+      letrasList.forEach(l => {
+        if (!sentSet.has(`Primaria_${c}_${l}`)) pendingPrimaria.push(`${c} ${l}`);
+      });
+    });
+
+    const totalExpected = (cursosInf.length + cursosPri.length) * letrasList.length;
+    const totalSent = totalExpected - (pendingInfantil.length + pendingPrimaria.length);
+    const pct = totalExpected > 0 ? Math.round((totalSent / totalExpected) * 100) : 0;
+
+    return {
+      totalExpected,
+      totalSent,
+      pct,
+      pendingInfantil,
+      pendingPrimaria,
+      allDone: totalSent >= totalExpected && totalExpected > 0
+    };
+  }, [registros, appSettings]);
 
   // Buscador en tiempo real para Cocina y Dirección
   const searchResults = useMemo(() => {
@@ -3867,6 +4212,93 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                 <span>Excel</span>
               </button>
             </div>
+          </div>
+
+          {/* Monitor de Recepción de Partes del Día (X/27 Aulas) */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200/70 dark:border-slate-800 shadow-xs print:hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                  receptionStatus.allDone
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                    : "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+                }`}>
+                  {receptionStatus.pct}%
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
+                      Recepción de Aulas: {receptionStatus.totalSent} de {receptionStatus.totalExpected} registradas
+                    </span>
+                    {receptionStatus.allDone ? (
+                      <span className="text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">
+                        ✓ Todas las aulas listas
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full">
+                        Faltan {receptionStatus.totalExpected - receptionStatus.totalSent} aulas
+                      </span>
+                    )}
+                  </div>
+                  <div className="w-full sm:w-64 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-1.5">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        receptionStatus.allDone ? "bg-emerald-500" : "bg-gradient-to-r from-blue-600 to-amber-500"
+                      }`}
+                      style={{ width: `${receptionStatus.pct}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {!receptionStatus.allDone && (
+                <button
+                  type="button"
+                  onClick={() => setShowPendingClasses(!showPendingClasses)}
+                  className="self-start sm:self-center text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span>{showPendingClasses ? "Ocultar pendientes" : "Ver aulas pendientes"}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showPendingClasses ? "rotate-180" : ""}`} />
+                </button>
+              )}
+            </div>
+
+            {showPendingClasses && !receptionStatus.allDone && (
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left animate-fade-in">
+                <div className="bg-pink-50/50 dark:bg-pink-950/15 border border-pink-100 dark:border-pink-900/30 rounded-xl p-2.5">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-pink-700 dark:text-pink-300 block mb-1.5">
+                    🍼 Infantil Pendientes ({receptionStatus.pendingInfantil.length})
+                  </span>
+                  {receptionStatus.pendingInfantil.length === 0 ? (
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Infantil completo</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {receptionStatus.pendingInfantil.map(cl => (
+                        <span key={cl} className="text-[10.5px] font-bold bg-white dark:bg-slate-900 text-pink-700 dark:text-pink-300 border border-pink-200/70 dark:border-pink-800/50 px-2 py-0.5 rounded-lg">
+                          {cl}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="bg-blue-50/50 dark:bg-blue-950/15 border border-blue-100 dark:border-blue-900/30 rounded-xl p-2.5">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 dark:text-blue-300 block mb-1.5">
+                    🎒 Primaria Pendientes ({receptionStatus.pendingPrimaria.length})
+                  </span>
+                  {receptionStatus.pendingPrimaria.length === 0 ? (
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Primaria completo</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {receptionStatus.pendingPrimaria.map(cl => (
+                        <span key={cl} className="text-[10.5px] font-bold bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800/50 px-2 py-0.5 rounded-lg">
+                          {cl}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tarjeta Principal de Totales Esenciales de Cocina (Vista Inmediata: Total, Etapas y Cursos) */}

@@ -1,35 +1,53 @@
-/* --- VARIABLES DE TEMA Y PALETA --- */
+/* --- VARIABLES DE TEMA Y PALETA INSTITUCIONAL SAN BUENAVENTURA --- */
 :root {
-  --bg-global: #f8fafc;
-  --card-bg: rgba(255, 255, 255, 0.75);
-  --card-border: rgba(226, 232, 240, 0.8);
+  --bg-global: #f4f7fb;
+  --bg-mesh: radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.07) 0px, transparent 50%),
+             radial-gradient(at 100% 0%, rgba(217, 119, 6, 0.07) 0px, transparent 50%),
+             radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+  --card-bg: rgba(255, 255, 255, 0.88);
+  --card-border: rgba(226, 232, 240, 0.9);
   --text-main: #0f172a;
   --text-muted: #64748b;
-  --shadow-sm: 0 2px 8px rgba(59, 130, 246, 0.03);
-  --shadow-md: 0 10px 25px -5px rgba(59, 130, 246, 0.05), 0 8px 10px -6px rgba(59, 130, 246, 0.05);
-  --shadow-lg: 0 20px 35px -5px rgba(59, 130, 246, 0.08);
-  --blur: 14px;
-}
-
-.dark {
-  --bg-global: #080c14;
-  --card-bg: rgba(17, 24, 39, 0.75);
-  --card-border: rgba(255, 255, 255, 0.06);
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 10px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 12px 28px -6px rgba(15, 23, 42, 0.07), 0 4px 12px -4px rgba(37, 99, 235, 0.04);
+  --shadow-lg: 0 20px 40px -8px rgba(15, 23, 42, 0.11);
   --blur: 16px;
 }
 
-/* --- DISEÑO BASE --- */
+.dark {
+  --bg-global: #070b14;
+  --bg-mesh: radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.14) 0px, transparent 50%),
+             radial-gradient(at 100% 0%, rgba(217, 119, 6, 0.10) 0px, transparent 50%),
+             radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+  --card-bg: rgba(15, 23, 42, 0.82);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 12px 28px -6px rgba(0, 0, 0, 0.4), 0 8px 12px -6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  --blur: 18px;
+}
+
+/* --- DISEÑO BASE MOBILE-FIRST --- */
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--bg-global) !important;
+  background-image: var(--bg-mesh) !important;
+  background-attachment: fixed;
   color: var(--text-main) !important;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
   transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+button, a, input, select, textarea, label {
+  touch-action: manipulation;
+}
+
+/* Soporte para barra inferior en móviles con notch / home indicator */
+.pb-safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
 /* Scrollbars personalizados */
@@ -51,7 +69,7 @@ body {
   background: rgba(59, 130, 246, 0.5);
 }
 
-/* Glassmorphism Premium */
+/* Glassmorphism Institucional Premium */
 .glass-panel {
   background-color: var(--card-bg) !important;
   backdrop-filter: blur(var(--blur)) !important;
@@ -64,21 +82,29 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
+/* Gradiente Institucional San Buenaventura */
+.sb-hero-gradient {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 45%, #0f766e 100%);
+}
+.dark .sb-hero-gradient {
+  background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #115e59 100%);
+}
+
 /* --- ANIMACIONES --- */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 @keyframes slideInRight {
-  from { transform: translateX(16px); opacity: 0; }
+  from { transform: translateX(14px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideInLeft {
-  from { transform: translateX(-16px); opacity: 0; }
+  from { transform: translateX(-14px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideUp {
-  from { transform: translateY(12px); opacity: 0; }
+  from { transform: translateY(10px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 @keyframes scaleUp {
@@ -90,41 +116,41 @@ body {
   50% { transform: scale(1.03); box-shadow: 0 0 12px 4px rgba(37, 99, 235, 0.15); }
 }
 
-.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-.animate-slide-right { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-left { animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-up { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-scale-up { animation: scaleUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.28s ease-out forwards; }
+.animate-slide-right { animation: slideInRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-left { animation: slideInLeft 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-up { animation: slideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-scale-up { animation: scaleUp 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 .animate-pulse-glow { animation: pulseGlow 2s infinite ease-in-out; }
 
-/* Micro-interacciones */
+/* Micro-interacciones Táctiles */
 .interactive-card {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .interactive-card:hover {
-  transform: translateY(-2px) scale(1.01);
-  border-color: rgba(59, 130, 246, 0.45) !important;
+  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.5) !important;
 }
 .interactive-card:active {
-  transform: translateY(0) scale(0.99);
+  transform: translateY(0) scale(0.985);
 }
 
 .btn-hover-effect {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn-hover-effect:hover {
-  transform: scale(1.025);
-  filter: brightness(1.06);
+  transform: scale(1.02);
+  filter: brightness(1.05);
 }
 .btn-hover-effect:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
 }
 
-/* --- CUSTOM RANGE SLIDER --- */
+/* --- CUSTOM RANGE SLIDER (OPTIMIZADO PARA PULGAR EN MÓVIL) --- */
 input[type="range"] {
   -webkit-appearance: none;
   width: 100%;
-  height: 6px;
+  height: 8px;
   background: #e2e8f0;
   border-radius: 9999px;
   outline: none;
@@ -136,30 +162,30 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
   transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
-  border: 2px solid #ffffff;
+  border: 3px solid #ffffff;
 }
 .dark input[type="range"]::-webkit-slider-thumb {
-  border: 2px solid #0f172a;
+  border: 3px solid #0f172a;
 }
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.25);
-  background: #3b82f6;
+  transform: scale(1.15);
 }
 input[type="range"]::-webkit-slider-thumb:active {
-  transform: scale(0.9);
+  transform: scale(0.95);
 }
 
 /* --- ESTILOS DE IMPRESIÓN EXCLUSIVOS --- */
 @media print {
   header, 
   nav, 
+  footer,
   button, 
   .print-hidden, 
   .theme-toggle-btn, 
@@ -172,6 +198,7 @@ input[type="range"]::-webkit-slider-thumb:active {
 
   body {
     background: white !important;
+    background-image: none !important;
     color: black !important;
     font-size: 12pt !important;
     padding: 0 !important;
