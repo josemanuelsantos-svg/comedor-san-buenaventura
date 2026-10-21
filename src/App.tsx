@@ -535,7 +535,7 @@ export default function App() {
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="text-[10px] text-blue-700 dark:text-blue-400 font-extrabold tracking-wide truncate">
-                  Hnos. Menores Capuchinos
+                  Hnos. Menores Conventuales
                 </span>
                 <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold hidden sm:inline">
@@ -688,7 +688,7 @@ export default function App() {
         <div className="inline-flex flex-col items-center gap-1.5 px-5 py-3 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center gap-2 text-xs font-extrabold text-slate-700 dark:text-slate-300">
             <img src="https://i.ibb.co/YvMv3Qx/Logo-sin-fondo.png" alt="Escudo SB" className="w-5 h-5 object-contain" />
-            <span>Colegio San Buenaventura • Hnos. Menores Capuchinos</span>
+            <span>Colegio San Buenaventura • Hnos. Menores Conventuales</span>
           </div>
           <p className="text-[10.5px] font-semibold text-amber-700 dark:text-amber-400">
             ☦ «Paz y Bien» • Servicio de Comedor Escolar y Nutrición
