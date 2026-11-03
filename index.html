@@ -488,7 +488,7 @@ const DEFAULT_SETTINGS = {
   letras: ["A", "B", "C"],
   cursosInfantil: ["1º", "2º", "3º"],
   cursosPrimaria: ["1º", "2º", "3º", "4º", "5º", "6º"],
-  menuUrl: "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing",
+  menuUrl: "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing",
   incidenciasUrl: "https://comedorcsb-incidencias.vercel.app/",
   actividades: [
     {
@@ -886,7 +886,7 @@ export default function App() {
 
             <div className="flex items-center gap-2.5 sm:gap-4 font-bold text-[10px] shrink-0">
               <a 
-                href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
+                href={appSettings?.menuUrl || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing"} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-emerald-300 hover:text-emerald-200 transition-colors flex items-center gap-1 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-400/20"
@@ -1014,7 +1014,7 @@ export default function App() {
                   <li><strong>Catequesis y Robótica:</strong> Los lunes (4º Pri) y martes (3º Pri) se habilita Catequesis; los martes y jueves se indica el turno tardío de Robótica.</li>
                   <li><strong>Enviar a cocina:</strong> Pulsa el botón inferior. El registro se sincroniza en tiempo real.</li>
                   <li>
-                    <strong>Menú del Mes:</strong> Consulta los platos en <a href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-bold underline inline-flex items-center gap-0.5">Menú del Mes (Drive) <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
+                    <strong>Menú del Mes:</strong> Consulta los platos en <a href={appSettings?.menuUrl || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing"} target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-bold underline inline-flex items-center gap-0.5">Menú del Mes (Drive) <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
                   </li>
                   <li>
                     <strong>Gestión de Incidencias:</strong> Accede al <a href={appSettings?.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/"} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-bold underline inline-flex items-center gap-0.5">Portal de Incidencias <ExternalLink className="w-2.5 h-2.5 inline" /></a>.
@@ -1899,7 +1899,7 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
           </div>
 
           <a 
-            href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
+            href={appSettings?.menuUrl || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing"} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="self-start sm:self-center px-3.5 py-2 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white border border-white/25 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
@@ -4578,7 +4578,7 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
 
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
               <a
-                href={appSettings?.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"}
+                href={appSettings?.menuUrl || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-955/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
@@ -5463,7 +5463,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast, currentUser, i
   const [letrasInput, setLetrasInput] = useState(settings.letras.join(", "));
   const [cursosInfantilInput, setCursosInfantilInput] = useState(settings.cursosInfantil.join(", "));
   const [cursosPrimariaInput, setCursosPrimariaInput] = useState(settings.cursosPrimaria.join(", "));
-  const [menuUrlInput, setMenuUrlInput] = useState(settings.menuUrl || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing");
+  const [menuUrlInput, setMenuUrlInput] = useState(settings.menuUrl || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing");
   const [incidenciasUrlInput, setIncidenciasUrlInput] = useState(settings.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/");
 
   // Roster permanente de alumnos
@@ -5532,7 +5532,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast, currentUser, i
       letras,
       cursosInfantil,
       cursosPrimaria,
-      menuUrl: menuUrlInput.trim() || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing",
+      menuUrl: menuUrlInput.trim() || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing",
       incidenciasUrl: incidenciasUrlInput.trim() || "https://comedorcsb-incidencias.vercel.app/"
     });
     showToast("Ajustes generales guardados correctamente.", "success");
@@ -5859,7 +5859,7 @@ function SettingsView({ settings, onSave, onReset, db, showToast, currentUser, i
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Enlace directo al documento o imagen del menú mensual alojado en Google Drive o la web.</p>
               </div>
               <a 
-                href={menuUrlInput || "https://drive.google.com/file/d/1cyrsThLFH5J72X5bE3M5-UIZs6jbRJ1E/view?usp=sharing"} 
+                href={menuUrlInput || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing"} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0 active:scale-95"
