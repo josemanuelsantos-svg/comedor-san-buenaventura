@@ -494,12 +494,12 @@ export default function App() {
                 href={appSettings?.menuUrl || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing"} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="text-emerald-300 hover:text-emerald-200 transition-colors flex items-center gap-1 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-400/20"
+                className="text-white hover:text-white transition-all flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-3 py-1 rounded-full border border-emerald-300/40 shadow-sm shadow-emerald-950/40 active:scale-95 font-black text-[11px]"
                 title="Abrir Menú del Mes en Google Drive"
               >
-                <UtensilsCrossed className="w-3 h-3 text-emerald-400" />
-                <span>Menú</span>
-                <ExternalLink className="w-2.5 h-2.5 opacity-75 hidden sm:inline" />
+                <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-200" />
+                <span>Menú del Mes</span>
+                <ExternalLink className="w-2.5 h-2.5 opacity-90 hidden sm:inline" />
               </a>
               <a 
                 href={appSettings?.incidenciasUrl || "https://comedorcsb-incidencias.vercel.app/"} 
@@ -1507,12 +1507,12 @@ function TeacherView({ db, user, registrosHoy, appSettings, showToast }) {
             href={appSettings?.menuUrl || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing"} 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="self-start sm:self-center px-3.5 py-2 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white border border-white/25 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
+            className="self-stretch sm:self-center px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-300/40 flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0 hover:ring-2 hover:ring-emerald-300/50"
             title="Abrir el menú del mes en Google Drive"
           >
-            <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-300" />
-            <span>Ver Menú del Mes</span>
-            <ExternalLink className="w-3 h-3 opacity-80" />
+            <UtensilsCrossed className="w-4 h-4 text-emerald-100" />
+            <span className="tracking-wide">🍽️ Ver Menú del Mes</span>
+            <ExternalLink className="w-3.5 h-3.5 text-emerald-100/90" />
           </a>
         </div>
         <School className="absolute -right-4 -bottom-5 w-24 h-24 text-white/5 rotate-12 pointer-events-none" />
@@ -4186,12 +4186,12 @@ function AdminView({ registros, selectedDate, setSelectedDate, loading, dataErro
                 href={appSettings?.menuUrl || "https://drive.google.com/file/d/14xPM60uBM2v-4ZvlOriwGMQZ1bP4XvQn/view?usp=sharing"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-955/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95"
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-md shadow-emerald-950/20 active:scale-95 border border-emerald-400/30"
                 title="Abrir Menú del Mes en Google Drive"
               >
-                <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Menú del Mes</span>
-                <ExternalLink className="w-3 h-3 opacity-70" />
+                <UtensilsCrossed className="w-4 h-4 text-emerald-100" />
+                <span>🍽️ Menú del Mes</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-90" />
               </a>
               <button
                 type="button"
