@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comedor-sb-v2';
+const CACHE_NAME = 'comedor-sb-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
